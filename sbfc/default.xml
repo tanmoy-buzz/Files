@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<include>
+	<context name="default">
+		<extension name="manual_internal">
+			<condition field="destination_number" expression="^\d{4}$">
+				<action application="set" data="ringback=$${us-ring}"/>
+				<action application="answer"/>
+				<action application="set" data="effective_caller_id_number=${cc_uname}"/>
+				<action application="set" data="hangup_after_bridge=true"/>
+				<!--<action application="bridge" data="user/${destination_number}@${domain}"/>-->
+				<action application="bridge" data="user/${destination_number}"/>
+			</condition>
+		</extension>
+	
+		<!--  <extension name="inbound_calls_go">
+                        <condition field="destination_number" expression="68314(\d{3})$">
+                                <action application="set" data="usertype=client"/>
+                                <action application="set" data="disposition=Abandonedcall"/>
+                                <action application="set" data="RECORD_TITLE=Recording ${dialed_number} ${caller_id_number} ${strftime(%Y-%m-%d %H:%M)}"/>
+                                <action application="set" data="RECORD_COPYRIGHT=(c) Buzzworks, Inc."/>
+                                <action application="set" data="RECORD_SOFTWARE=FreeSWITCH"/>
+                                <action application="set" data="RECORD_ARTIST=Buzzworks"/>
+                                <action application="set" data="RECORD_COMMENT=Buzz that works"/>
+                                <action application="set" data="RECORD_DATE=${strftime(%Y-%m-%d %H:%M)}"/>
+                                <action application="set" data="RECORD_STEREO=true"/>
+                                <action application="ring_ready" />
+                                <action application="set" data="ringback=${us-ring}"/>
+                                <action application="socket" data="127.0.0.1:8087 async full"/>
+                        </condition>
+		</extension> -->
+
+		<extension name="inbound_calls">
+			<condition field="destination_number" expression="67877|68313|68314|10(\d{3})">
+				<action application="event" data="Event-Subclass=CUSTOM::INBOUND_CALL,Event-Name=CUSTOM,dispo_code=${dispo_code}:::::"/>
+				<action application="set" data="usertype=client"/>
+				<action application="set" data="caller_id=${destination_number}"/>
+				<action application="set" data="disposition=Abandonedcall"/>
+				<action application="ring_ready" />
+				<action application="set" data="ringback=${us-ring}"/>
+				<action application="lua" data="password_validate.lua"/>
+			</condition>
+		</extension>
+
+		<extension name="outbound_session_loop">
+			<condition field="destination_number" expression="^(000312951420)$">
+				<action application="socket" data="127.0.0.1:8085 async full"/>
+			</condition>
+		</extension>
+
+		<extension name="outbound">
+			<condition field="destination_number" expression="^(\d{10,12})$">
+				<action application="set" data="RECORD_TITLE=Recording ${dialed_number} ${caller_id_number} ${strftime(%Y-%m-%d %H:%M)}"/>
+				<action application="set" data="RECORD_COPYRIGHT=(c) Buzzworks, Inc."/>
+				<action application="set" data="RECORD_SOFTWARE=FreeSWITCH"/>
+				<action application="set" data="RECORD_ARTIST=Buzzworks"/>
+				<action application="set" data="RECORD_COMMENT=Buzz that works"/>
+				<action application="set" data="RECORD_DATE=${strftime(%Y-%m-%d %H:%M)}"/>
+				<action application="set" data="RECORD_STEREO=true"/>
+				<action application="set" data="continue_on_fail=true"/>
+				<action application="set" data="usertype=client_ipphone"/>
+				<action application="set" data="disposition=Connected"/>
+				<action application="set" data="call_mode=manual"/>
+				<action application="set" data="call_direction=outbound"/>
+				<action application="set" data="cc_customer=${destination_number}"/>
+				<action application="set" data="b_uuid=${create_uuid()}"/>
+				<action application="export" data="cc_agent=${caller_id_number}"/>
+				<action application="set" data="effective_caller_id_number=${user_data(${cc_agent}@${domain} var user_caller_id)}"/>
+				<action application="record_session" data="/var/spool/freeswitch/default/${strftime(%d-%m-%Y-%H-%M)}_${destination_number:-10}_${b_uuid}.mp3"/>
+				<!--<action application="set" data="effective_caller_id_number=68627${did}"/>-->
+					<action application="set" data="hangup_after_bridge=true"/>
+				<action application="bridge" data="{ignore_early_media=false,origination_uuid=${b_uuid}}sofia/external/$1@192.168.3.202"/>
+				<action application="hangup"/>
+			</condition>
+		</extension>
+
+		<extension name="wfh_agent_req_dial">
+			<condition field="destination_number" expression="^(12345)$">
+				<action application="socket" data="127.0.0.1:8084 async full"/>
+			</condition>
+		</extension>
+		
+		<extension name="sip_number">
+			<condition field="destination_number" expression="^(11119916)$">
+				<action application="set" data="call_type=twinkle"/>
+				<action application="socket" data="127.0.0.1:8084 async full"/>
+			</condition>
+		</extension>
+
+		<extension name="sip_session_answer">
+			<condition field="destination_number" expression="^(00019916)$">
+				<action application="set" data="max_forwards=1000"/>
+				<action application="set" data="hangup_after_bridge=false"/>
+				<action application="set" data="api_hangup_hook=callcenter_config agent set status ${cc_agent} 'Logged Out'"/>
+				<action application="set" data="hold_hangup_xfer_exten=00019916:XML:default"/>
+				<action application="set" data="transfer_after_bridge=00019916"/> <!-- Remove this if you just want to get a single call -->
+				<action application="conference" data="${uuid}@sla"/>
+			</condition>
+		</extension>
+			
+		<extension name="agent-work-flow">
+			<condition field="destination_number" expression="^[0-9][0-9][0-9]$"/>
+			<condition field="${voice_blaster}" expression="^(False)$">
+				<action application="socket" data="127.0.0.1:8086 async full"/>
+				<anti-action application="lua" data="voice_blaster.lua"/>
+			</condition>
+		</extension>
+
+		<extension name="eavesdrop">
+			<condition field="destination_number" expression="^000(.*)$">
+				<action application="set" data="hold_hangup_xfer_exten=00019916:XML:default"/>
+				<action application="set" data="transfer_after_bridge=00019916"/>				
+				<action application="eavesdrop" data="$1"/>
+				<action application="transfer" data="00019916 XML default"/>
+			</condition>
+		</extension>
+
+		<extension name="add_call_conference">
+			<condition field="destination_number" expression="^(.*)@sla$">
+				<action application="log" data="${destination_number}"/>
+				<action application="conference" data="${destination_number}"/>
+			</condition>
+		</extension>	
+	</context>
+	<context name="default2">
+		<extension name="inbound_calls_ivr">
+			<condition field="destination_number" expression="68313|67877(\d{3})">
+				<action application="lua" data="ivr_helpline.lua"/>
+			</condition>
+		</extension>
+
+		<extension name="uuid-standby">
+			<condition field="destination_number" expression="^(12345)$"/>
+			<condition field="${outbound_dial_method}" expression="^(Predictive)$">
+				<action application="set" data="api_hangup_hook=callcenter_config agent set status ${cc_agent} 'Logged Out'"/>
+				<action application="set" data="hold_hangup_xfer_exten=12312:XML:default2"/>
+				<action application="set" data="transfer_after_bridge=12312"/>
+				<action application="sleep" data="300"/>
+				<action application="set" data="res=${callcenter_config(agent set uuid ${cc_agent} '${uuid}')}" />
+				<action application="set" data="res=${callcenter_config(agent set type ${cc_agent} 'uuid-standby')}" />
+				<action application="set" data="res=${callcenter_config(agent set status ${cc_agent} 'Available (On Demand)')}" />
+				<action application="set" data="res=${callcenter_config(agent set state ${cc_agent} 'Waiting')}" />
+				<action application="answer" />
+				<action application="endless_playback" data="/usr/local/freeswitch/sounds/custom_sounds/HDFC_BANK_MOGO.mp3"/>
+				<anti-action application="transfer" data="12346 XML default2"/>
+				<!--<action application="conference" data="${uuid}@sla"/>-->
+			</condition>
+		</extension>
+
+		<extension name="dial-next_number">
+			<condition field="destination_number" expression="^(12346)$">
+				<action application="set" data="api_hangup_hook=callcenter_config agent set status ${cc_agent} 'Logged Out'"/>
+				<action application="set" data="hold_hangup_xfer_exten=12312:XML:default2"/>
+				<action application="set" data="transfer_after_bridge=12312"/>
+				<action application="sleep" data="2000"/>
+				<action application="set" data="res=${callcenter_config(agent set uuid ${cc_agent} '${uuid}')}" />
+				<action application="set" data="res=${callcenter_config(agent set type ${cc_agent} 'uuid-standby')}" />
+				<action application="event" data="Event-Subclass=CUSTOM::DIAL-NEXT-NUMBER,Event-Name=CUSTOM"/>
+				<action application="answer" />
+				<action application="endless_playback" data="/usr/local/freeswitch/sounds/custom_sounds/HDFC_BANK_MOGO.mp3"/>
+			</condition>
+		</extension>
+
+		<extension name="auto-disposition">
+			<condition field="destination_number" expression="^(12312)$">
+				<action application="answer" />
+				<action application="play_and_get_digits" data="1 1 3 5000 # /usr/local/freeswitch/sounds/custom_sounds/enter_disposition.mp3 /usr/local/freeswitch/sounds/custom_sounds/invalid_disposition.mp3 dispo_code \d+"/>
+				<action application="event" data="Event-Subclass=custom::disposition,Event-Name=CUSTOM,dispo_code=${dispo_code}:::::"/>
+				<action application="transfer" data="check_dispo XML default2"/>
+				<!--<action application="transfer" data="12345 XML default2"/>-->
+				<!--<action application="transfer" data="76543 XML default"/>-->
+			</condition>
+		</extension>
+
+		<extension name="check_dispo">
+			<condition field="destination_number" expression="check_dispo"/>
+			<condition field="${dispo_code}" expression="^1$">
+				<action application="set" data="api_hangup_hook=callcenter_config agent set status ${cc_agent} 'Logged Out'"/>
+				<action application="set" data="hold_hangup_xfer_exten=12312:XML:default2"/>
+				<action application="set" data="transfer_after_bridge=12312"/>
+				<action application="lua" data="redial_number.lua"/>
+				<anti-action application="transfer" data="12345 XML default2"/>
+			</condition>
+		</extension>
+
+		<extension name="voice_blaster">
+			<condition field="destination_number" expression="^\d{10,10}$">
+				<action application="lua" data="voice_blaster.lua"/>
+			</condition>
+		</extension>
+	</context>
+</include>
