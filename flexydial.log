@@ -1,0 +1,121 @@
+Common subdirectories: flexydial_bkp_170224/flexydial/__pycache__ and flexydial/flexydial/__pycache__
+diff flexydial_bkp_170224/flexydial/constants.py flexydial/flexydial/constants.py
+668a669
+>         {'name':'report_voiceblaster', 'title':'Voice Blaster Report', 'icon':'fa-chart-line', 'permissions':'R','sequence':17,'children':[]},
+724a726,815
+> 
+> 
+> TTS_LANGS = [
+>     {'lang_code':'arb','lang':'Arabic'},
+>     {'lang_code':'ar-AE','lang':'Arabic (Gulf)'},
+>     {'lang_code':'nl-BE','lang':'Dutch (Belgian)'},
+>     {'lang_code':'ca-ES','lang':'Catalan'},
+>     {'lang_code':'yue-CN','lang':'Chinese (Cantonese)'},
+>     {'lang_code':'cmn-CN','lang':'Chinese (Mandarin)'},
+>     {'lang_code':'da-DK','lang':'Danish'},
+>     {'lang_code':'nl-NL','lang':'Dutch'},
+>     {'lang_code':'en-AU','lang':'English (Australian)'},
+>     {'lang_code':'en-GB','lang':'English (British)'},
+>     {'lang_code':'en-IN','lang':'English (Indian)'},
+>     {'lang_code':'en-IE','lang':'English (Ireland)'},
+>     {'lang_code':'en-NZ','lang':'English (New Zealand)'},
+>     {'lang_code':'en-ZA','lang':'English (South African)'},
+>     {'lang_code':'en-US','lang':'English (US)'},
+>     {'lang_code':'en-GB-WLS','lang':'English (Welsh)'},
+>     {'lang_code':'fi-FI','lang':'Finnish'},
+>     {'lang_code':'fr-FR','lang':'French'},
+>     {'lang_code':'fr-BE','lang':'French (Belgian)'},
+>     {'lang_code':'fr-CA','lang':'French (Canadian)'},
+>     {'lang_code':'de-DE','lang':'German'},
+>     {'lang_code':'de-AT','lang':'German (Austrian)'},
+>     {'lang_code':'hi-IN','lang':'Hindi'},    
+>     {'lang_code':'is-IS','lang':'Icelandic'},
+>     {'lang_code':'it-IT','lang':'Italian'},
+>     {'lang_code':'ja-JP','lang':'Japanese'},
+>     {'lang_code':'ko-KR','lang':'Korean'},
+>     {'lang_code':'nb-NO','lang':'Norwegian'},
+>     {'lang_code':'pl-PL','lang':'Polish'},
+>     {'lang_code':'pt-BR','lang':'Portuguese (Brazilian)'},
+>     {'lang_code':'pt-PT','lang':'Portuguese (European)'},
+>     {'lang_code':'ro-RO','lang':'Romanian'},
+>     {'lang_code':'ru-RU','lang':'Russian'},
+>     {'lang_code':'es-ES','lang':'Spanish (European)'},
+>     {'lang_code':'es-MX','lang':'Spanish (Mexican)'},
+>     {'lang_code':'es-US','lang':'Spanish (US)'},
+>     {'lang_code':'sv-SE','lang':'Swedish'},
+>     {'lang_code':'tr-TR','lang':'Turkish'},
+>     {'lang_code':'cy-GB','lang':'Welsh'},
+> ]
+> 
+> TTS_VOICES = [
+>     {'arb':['Zeina',]},
+>     {'ar-AE':['Hala','Zayd']},
+>     {'nl-BE':['Lisa',]},
+>     {'ca-ES':['Arlet',]},
+>     {'yue-CN':['Hiujin',]},
+>     {'cmn-CN':['Zhiyu',]},
+>     {'da-DK':['Naja','Mads','Sofie',]},
+>     {'nl-NL':['Laura','Lotte','Ruben',]},
+>     {'en-AU':['Nicole','Olivia','Russell',]},
+>     {'en-GB':['Amy','Emma','Brian','Arthur',]},
+>     {'en-IN':['Aditi','Raveena','Kajal',]},
+>     {'en-IE':['Niamh',]},
+>     {'en-NZ':['Aria',]},
+>     {'en-ZA':['Ayanda',]},
+>     {'en-US':['Danielle','Gregory','Ivy','Joanna','Kendra','Kimberly','Salli','Joey','Justin','Kevin','Matthew','Ruth','Stephen',]},
+>     {'en-GB-WLS':['Geraint',]},
+>     {'fi-FI':['Suvi',]},
+>     {'fr-FR':['Céline/Celine','Léa','Mathieu','Rémi',]},
+>     {'fr-BE':['Isabelle',]},
+>     {'fr-CA':['Chantal','Gabrielle','Liam',]},
+>     {'de-DE':['Marlene','Vicki','Hans','Daniel',]},
+>     {'de-AT':['Hannah',]},
+>     {'hi-IN':['Aditi','Kajal',]},    
+>     {'is-IS':['Dóra/Dora','Karl',]},
+>     {'it-IT':['Carla','Bianca','Giorgio','Adriano',]},
+>     {'ja-JP':['Mizuki','Takumi','Kazuha','Tomoko',]},
+>     {'ko-KR':['Seoyeon',]},
+>     {'nb-NO':['Liv','Ida',]},
+>     {'pl-PL':['Ewa','Maja','Jacek','Jan','Ola',]},
+>     {'pt-BR':['Camila','Vitória/Vitoria','Ricardo','Thiago']},
+>     {'pt-PT':['Inês/Ines','Cristiano',]},
+>     {'ro-RO':['Carmen',]},
+>     {'ru-RU':['Tatyana','Maxim',]},
+>     {'es-ES':['Conchita','Lucia','Enrique','Sergio',]},
+>     {'es-MX':['Mia','Andrés',]},
+>     {'es-US':['Lupe','Penélope/Penelope','Miguel','Pedro',]},
+>     {'sv-SE':['Astrid','Elin',]},
+>     {'tr-TR':['Filiz',]},
+>     {'cy-GB':['Gwyneth',]},
+> ]
+> 
+> TTS_NEURAL_VOICES = ['Hala','Zayd','Lisa','Arlet','Hiujin','Zhiyu','Sofie','Laura','Olivia','Amy','Emma','Brian','Arthur','Kajal','Niamh','Aria','Ayanda',
+>                      'Danielle','Gregory','Ivy','Joanna','Kendra','Kimberly','Salli','Joey','Justin','Kevin','Matthew','Ruth','Stephen','Suvi','Isabelle',
+>                      'Gabrielle','Liam','Léa','Rémi','Vicki','Daniel','Hannah','Kajal','Bianca','Adriano','Takumi','Kazuha','Tomoko','Seoyeon','Ida','Ola',
+>                      'Camila','Vitória/Vitoria','Thiago','Inês/Ines','Lucia','Sergio','Mia','Andrés','Lupe','Pedro','Elin']
+\ No newline at end of file
+diff flexydial_bkp_170224/flexydial/settings.py flexydial/flexydial/settings.py
+288d287
+< 
+diff flexydial_bkp_170224/flexydial/urls.py flexydial/flexydial/urls.py
+57c57,58
+<     path("api/show-documents/",views.ShowDocument.as_view(),name='show-documents')
+---
+>     path("api/show-documents/",views.ShowDocument.as_view(),name='show-documents'),
+>     path('api/filter_tts_voices/',views.Filter_TTS_Voices.as_view(),name='filter_tts_voices'),
+diff flexydial_bkp_170224/flexydial/views.py flexydial/flexydial/views.py
+28c28
+< from .constants import (CRM_FIELDS, USER_FIELDS ,DNC_FIELDS, PAGINATE_BY_LIST, ACTION_TYPE, ALTERNATE_FIELDS,HOLIDAYS_FIELDS)
+---
+> from .constants import (CRM_FIELDS, USER_FIELDS ,DNC_FIELDS, PAGINATE_BY_LIST, ACTION_TYPE, ALTERNATE_FIELDS,HOLIDAYS_FIELDS,TTS_VOICES)
+823a824,832
+> 
+> class Filter_TTS_Voices(LoginRequiredMixin,APIView):
+> 	def get(self,request):
+> 		tts_lang_code = request.GET.get('tts_lang_code','')
+> 		collected_voices = []
+> 		for voice in TTS_VOICES:
+> 			if tts_lang_code in voice.keys():
+> 				collected_voices = voice[tts_lang_code]
+> 		return Response(collected_voices)
+\ No newline at end of file

@@ -1,0 +1,329 @@
+Common subdirectories: flexydial_bkp_170224/callcenter/__pycache__ and flexydial/callcenter/__pycache__
+Common subdirectories: flexydial_bkp_170224/callcenter/migrations and flexydial/callcenter/migrations
+diff flexydial_bkp_170224/callcenter/schedulejobs.py flexydial/callcenter/schedulejobs.py
+97c97
+< 			download_abandonedcall_report, download_billing_report)
+---
+> 			download_abandonedcall_report, download_billing_report,download_voice_blaster_report)
+159a160,163
+> 		if args[0] == 'Voice Blaster Report':
+> 			columns = ReportColumnVisibility.objects.filter(user_id=args[2], report_name='17')
+> 			col_list = columns.first().columns_name if columns.exists() else ['campaign_name','phonebook','customer_cid','dialed_status','created','primary_dispo',"audio_file","sms_template"]
+> 			download_voice_blaster_report(filters=args[3], user=args[2], col_list=col_list, download_report_id=None)
+diff flexydial_bkp_170224/callcenter/serializers.py flexydial/callcenter/serializers.py
+1115c1115,1163
+< 		fields ='__all__'
+\ No newline at end of file
+---
+> 		fields ='__all__'
+> 
+> class VoiceBlasterReportSerializer(serializers.ModelSerializer):
+> 	""" Serlialzer for the agent activity report showing """
+> 	cdrfeedback = CdrFeedbckReportSeializer(read_only=True)
+> 	created = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+> 	audio_file = serializers.SerializerMethodField()
+> 	primary_dispo= serializers.SerializerMethodField()
+> 	sms_template= serializers.SerializerMethodField()
+> 	class Meta:
+> 		model = CallDetail
+> 		fields =('campaign_name','phonebook','customer_cid','dialed_status','created','cdrfeedback',"audio_file","sms_template","primary_dispo")
+> 
+> 	def get_voice_blaster_obj(self,obj):
+> 		vb_data= Campaign.objects.get(name=obj.campaign_name).vbcampaign.all()
+> 		return  vb_data
+> 
+> 	def get_audio_file(self,obj):
+> 		voice_blaster_obj = self.get_voice_blaster_obj(obj)
+> 		names = list(voice_blaster_obj.values_list('vb_audio__name',flat=True))
+> 		return names[0] if names else ""
+> 
+> 	def get_primary_dispo(self,obj):
+> 		try:
+> 			return obj.cdrfeedback.primary_dispo
+> 		except:
+> 			return ""
+> 
+> 	def get_sms_template(self,obj):
+> 		voice_blaster_obj = self.get_voice_blaster_obj(obj)
+> 		vc_data = voice_blaster_obj.first()
+> 		json_data = vc_data.vb_data
+> 		sms_tem_names = []
+> 		try:
+> 			primary_dispo = obj.cdrfeedback.primary_dispo
+> 		except:
+> 			primary_dispo=""
+> 			pass
+> 		if 'vb_dtmf' in json_data:
+> 			api_value = None
+> 			vb_dtmf = json_data['vb_dtmf']
+> 			for dtmf, dtmf_info in vb_dtmf.items():
+> 				if dtmf_info.get('dispo') == primary_dispo and dtmf_info.get('is_sms') ==True:
+> 					api_value = dtmf_info.get('api')
+> 			if api_value:
+> 				sms_tem_names =SMSGateway.objects.filter(id=api_value).values_list('template__name', flat=True)
+> 			else:
+> 				return None
+> 		return sms_tem_names[0] if sms_tem_names else ""
+\ No newline at end of file
+Common subdirectories: flexydial_bkp_170224/callcenter/templatetags and flexydial/callcenter/templatetags
+diff flexydial_bkp_170224/callcenter/urls.py flexydial/callcenter/urls.py
+290a291
+>     path('CallReports/VoiceBlasterReport/', views.VoiceBlasterReportView.as_view(), name='report_voiceblaster'),
+diff flexydial_bkp_170224/callcenter/utility.py flexydial/callcenter/utility.py
+37c37
+< 	SetCallBackContactSerializer, DncSerializer, CallDetailReportSerializer, AgentActivityReportSerializer, CurrentCallBackSerializer, AbandonedcallSerializer, CallRecordingFeedbackSerializer, AppointmentSerializer)
+---
+> 	SetCallBackContactSerializer, DncSerializer, CallDetailReportSerializer, AgentActivityReportSerializer, CurrentCallBackSerializer, AbandonedcallSerializer, CallRecordingFeedbackSerializer, AppointmentSerializer,VoiceBlasterReportSerializer)
+3182d3181
+< 						print(trunc_total_channel,total_used_channels,TRUNK[str(campaign_obj.trunk.id)],"trunc_total_channel, total_used_channels , redis_used")
+3187d3185
+< 						print("Tanmoy")
+3204d3201
+< 			print(trunk,str(trunk['id']))
+3206d3202
+< 				print('lll')
+3208d3203
+< 					print("mmm")
+3210d3204
+< 						print("nnn")
+3692,3697c3686,3738
+< 
+< 
+< 
+< 
+< 
+< 
+---
+> def download_voice_blaster_report(filters, user, col_list, download_report_id):
+> 	try:
+> 		query = {}
+> 		user = User.objects.get(id=user)
+> 		all_campaigns = filters.get("all_campaigns",[])
+> 		selected_campaign = filters.get("selected_campaign", [])
+> 		numeric = filters.get("numeric", "")
+> 		start_date = filters.get("start_date", "")
+> 		download_type = filters.get("download_type", "")
+> 		end_date = filters.get("end_date", "")
+> 		start_date = datetime.strptime(start_date,"%Y-%m-%d %H:%M").isoformat()
+> 		end_date = datetime.strptime(end_date,"%Y-%m-%d %H:%M").isoformat()    
+> 		start_end_date_filter = Q(created__gte=start_date)&Q(created__lte=end_date)
+> 		if numeric:
+> 			query['customer_cid'] = numeric
+> 		if selected_campaign:
+> 			query_string = Q(campaign_name__in = selected_campaign) & Q(callmode='voice-blaster')
+> 		else:
+> 			query_string = Q(campaign_name__in = all_campaigns) & Q(callmode='voice-blaster')
+> 		queryset = CallDetail.objects.filter(start_end_date_filter).filter(query_string).filter(**query).select_related("campaign")
+> 		serializer = VoiceBlasterReportSerializer(queryset, many=True)
+> 		download_folder = settings.MEDIA_ROOT+"/download/"+datetime.now().strftime("%m.%d.%Y")+"/"+str(user.id)+"/"
+> 		if not os.path.exists(download_folder):
+> 			os.makedirs(download_folder)
+> 		if download_type == 'xls':
+> 				file_path = download_folder + str(user.id) + '_' + str('voice_blaster-report') + '_' + str(
+> 					datetime.now().strftime("%m.%d.%Y.%H.%M.%S")) + ".xlsx"
+> 				with pd.ExcelWriter(file_path, engine="xlsxwriter") as writer:
+> 					df = pd.DataFrame(serializer.data)
+> 					df = df[col_list]
+> 					df.rename(columns={'created': 'date','primary_dispo':'dtmf_entered'}, inplace=True)
+> 					df.to_excel(writer, sheet_name="Sheet1", header=True, index=False)
+> 		else:
+> 			file_path = download_folder + str(user.id) + '_' + str('voice_blaster-report') + '_' + str(
+> 				datetime.now().strftime("%m.%d.%Y.%H.%M.%S")) + ".csv"
+> 			df = pd.DataFrame(serializer.data)
+> 			df = df[col_list]
+> 			df.rename(columns={'created': 'date','primary_dispo':'dtmf_entered'}, inplace=True)
+> 			df.to_csv(file_path, index=False)
+> 		subprocess.call(['chmod', '777', file_path])
+> 		f = open(file_path, 'rb')
+> 		download_report = DownloadReports.objects.get(id=download_report_id)
+> 		download_report.downloaded_file.save(os.path.basename(f.name), File(f), save=True)
+> 		download_report.is_start = False
+> 		download_report.save()
+> 		f.close()
+> 		os.remove(file_path)
+> 		set_download_progress_redis(download_report_id, 100.0, is_refresh=True)
+> 		transaction.commit()
+> 		connections['crm'].close()
+> 		connections['default'].close()
+> 	except Exception as e:
+> 		print("voice blaster download error ",e)
+diff flexydial_bkp_170224/callcenter/views.py flexydial/callcenter/views.py
+58c58
+< 	STRATEGY_CHOICES,COUNTRY_CODES, SBFC_STATIC_CRM_DATA,PasswordChangeType,SHOW_DISPOS_TYPE)
+---
+> 	STRATEGY_CHOICES,COUNTRY_CODES, SBFC_STATIC_CRM_DATA,PasswordChangeType,SHOW_DISPOS_TYPE,TTS_LANGS)
+521c521
+< 		#ll_data_count = Contact.objects.filter(phonebook__status="Active", campaign__in=list(camp_name)).count()
+---
+> 		ll_data_count = Contact.objects.filter(phonebook__status="Active", campaign__in=list(camp_name)).count()
+722c722
+< 			vc_blaster_calls = CallDetail.objects.filter(campaign_name=campaign['name'],callmode="voice-blaster",updated__gte=start_date_qr,updated__lte=end_date_qr,dialed_status__in = ['Full Audio Played']).count()
+---
+> 			vc_blaster_calls = CallDetail.objects.filter(campaign_name=campaign['name'],callmode="voice-blaster",updated__gte=start_date_qr,updated__lte=end_date_qr).count()
+3908c3908,3917
+< 				template = list(template.values('id','text'))
+---
+> 				# template = list(template.values('id','text'))
+> 				templates = template.values('id','text','name')
+> 				template_1 = []
+> 				for template_v in templates:
+> 					newtemplate = {}
+> 					newtemplate["id"] = template_v['id']
+> 					newtemplate["text"] = re.sub(re.compile('<.*?>') , '', template_v['text'])
+> 					newtemplate["name"] = template_v['name']
+> 					template_1.append(newtemplate.copy())
+> 					template = list(template_1)
+7563a7573
+> 		context['tts_langs'] = TTS_LANGS
+7599a7610
+> 		context['tts_langs'] = TTS_LANGS
+8872a8884
+> 	print(request.POST,'pppppppppppppppp11111111')
+8875a8888,8889
+> 		file_date = request.POST['date']
+> 		print(file_date,'dddddddddddd')
+8877c8891,8893
+< 		file_pattern = '*' + '_' + str(mobile_number) + '_' + str(session_uuid) + '.mp3'
+---
+> 		file_pattern = '*' + str(mobile_number) + '_' + str(session_uuid) + '.mp3'
+> 		print(file_pattern, 'qwertyyyyy qwety')
+> 		print(folder_path,'folder_pathfolder_pathfolder_path')
+8878a8895
+> 
+8882,8885c8899,8920
+< 			return JsonResponse({'Data':mobile_number})
+< 		else: #check recording exisst with 0 as prefix to mobile number
+< 			mobile_number='0'+mobile_number
+< 			file_pattern = '*' + str(mobile_number) + '_' + str(session_uuid) + '.mp3'
+---
+> 			urll = matching_files[0]
+> 			pathh = urll.split(folder_path)[1]
+> 			print(pathh,'7777777777777777')
+> 			print(urll,'9999999999999999999')
+> 			return JsonResponse({'Data':mobile_number,'rec_path':pathh, })
+> 		# else: #check recording exisst with 0 as prefix to mobile number
+> 
+> 		# 	mobile_number='0'+mobile_number
+> 		# 	file_pattern = '*' + str(mobile_number) + '_' + str(session_uuid) + '.mp3'
+> 		# 	matching_files = glob.glob(folder_path + file_pattern)
+> 		# 	if len(matching_files) > 0:
+> 		# 		print(mobile_number,'9999999999999999999=------')
+> 		# 		return JsonResponse({'Data':mobile_number})
+> 		# 	else:
+> 		# 		print('9999999999999999999---=-=-=') #noplaying reaches 
+> 		# 		return JsonResponse({'Error':'File Not Found'})
+> 
+> 		else:
+> 			file_pattern = '/'+'*' + str(mobile_number) + '_' + str(session_uuid) + '.mp3'
+> 			folder_path = '/var/spool/freeswitch/default/'+file_date
+> 			print(folder_path, 'qwerty 123456789')
+> 			print(folder_path+file_pattern, 'folder_path+file_pattern')
+8887,8890c8922
+< 			if len(matching_files) > 0:
+< 				return JsonResponse({'Data':mobile_number})
+< 			else:
+< 				return JsonResponse({'Error':'File Not Found'})
+---
+> 			print(matching_files, '123456789')
+8891a8924,8932
+> 			
+> 			if len(matching_files) > 0: #check if recording exist
+> 				print("Matching file found:", matching_files[0])
+> 				# return matching_files[0].path
+> 				urll = matching_files[0]
+> 				pathh = urll.split(folder_path)[1]
+> 				print(pathh,'7777777777777777')
+> 				print(urll,'9999999999999999999')
+> 				return JsonResponse({'Data':mobile_number,'rec_path':pathh, })
+8941d8981
+< #from scripts.autodial import voice_blaster_tts_check
+8943a8984,8986
+> 	"""
+> 	This will create a TTS File on the fly once call answered by the customer.
+> 	"""
+8949a8993,9077
+> 
+> @method_decorator(check_read_permission, name='get')
+> class VoiceBlasterReportView(LoginRequiredMixin, APIView):
+> 	"""
+> 	voiceblaster report page
+> 	"""
+> 	login_url = '/'
+> 	renderer_classes = [TemplateHTMLRenderer,DatatablesRenderer]
+> 	template_name = "reports/voiceblaster-report.html"
+> 	serializer_class = VoiceBlasterReportSerializer
+> 	paginator = DatatablesPageNumberPagination
+> 
+> 	def get(self, request, **kwargs):
+> 		context = {}
+> 		admin=False
+> 		report_visible_cols = get_report_visible_column("17",request.user)
+> 		if request.user.user_role and request.user.user_role.access_level == 'Admin':
+> 			admin = True
+> 		if request.user.is_superuser or admin:
+> 			camp = Campaign.objects.all().prefetch_related(
+> 					'users', 'group', 'disposition').distinct()
+> 			campaign_list = camp.values("id", "name")
+> 		else:
+> 			camp = Campaign.objects.filter(Q(users=request.user, users__isnull=False)|
+> 					Q( group__in=request.user.group.all(), group__isnull=False)).prefetch_related(
+> 					'users', 'group', 'disposition').distinct()
+> 			campaign_list = camp.values("id", "name")
+> 		all_fields= ['campaign_name','phonebook','customer_cid','dialed_status','created','sms_template','audio_file']
+> 		data={}
+> 		data['report_visible_cols'] = report_visible_cols
+> 		fields={'cdrfeedback':['primary_dispo']}
+> 		data['all_fields'] = all_fields
+> 		data['fields'] = fields
+> 		context={'request': request,'campaign_list': campaign_list}
+> 		context = {**context, **kwargs['permissions'],**data}
+> 		return Response(context)
+> 	
+> 	def post(self,request):
+> 		paginator = self.paginator()
+> 		query = {}
+> 		download_report = request.POST.get("agent_reports_download", "")
+> 		if download_report:
+> 			col_name = request.POST.get("column_name", "")
+> 			col_list = col_name.split(",")
+> 			filters = request.POST.dict()
+> 			filters['all_campaigns'] = request.POST.get("all_campaigns", "").split(',')
+> 			filters['selected_campaign'] = request.POST.getlist("selected_campaign", [])
+> 			filters['download_type'] = request.POST.get("agent_reports_download_type",'csv')
+> 			DownloadReports.objects.create(report='Voice Blaster Report',filters=filters, user=request.user.id, serializers=self.serializer_class, col_list=col_list, status=True)
+> 			return JsonResponse({"message":"Your Download request is created, will notify in download notification once completed."})
+> 		else:
+> 			all_campaigns = request.POST.getlist("all_campaigns[]", [])
+> 			selected_campaign = request.POST.getlist("selected_campaign[]", "")
+> 		numeric = request.POST.get("numeric", "")
+> 		start_date = request.POST.get("start_date", "")
+> 		end_date = request.POST.get("end_date", "")
+> 		start_date = datetime.strptime(start_date,"%Y-%m-%d %H:%M").isoformat()
+> 		end_date = datetime.strptime(end_date,"%Y-%m-%d %H:%M").isoformat()         
+> 		start_end_date_filter = Q(created__gte=start_date)&Q(created__lte=end_date)
+> 		if numeric:
+> 			query['customer_cid'] = numeric
+> 		if selected_campaign:
+> 			query_string = Q(campaign_name__in = selected_campaign) & Q(callmode='voice-blaster')
+> 		else:
+> 			query_string = Q(campaign_name__in = all_campaigns) & Q(callmode='voice-blaster')
+> 		queryset = CallDetail.objects.filter(start_end_date_filter).filter(query_string).filter(**query).select_related("campaign")
+> 		if request.POST.get('format', None) == 'datatables':
+> 			paginator.is_datatable_request = True
+> 		else:
+> 			paginator.is_datatable_request = False
+> 		page = paginate_queryset(request, queryset, paginator)
+> 		if page is not None:
+> 			serializer = self.serializer_class(page, many=True)
+> 			data = get_paginated_response(serializer.data, paginator)
+> 			return data
+> 		serializer = self.serializer_class(queryset, many=True)
+> 		return Response(serializer.data)
+> 		
+> 
+> 	
+> 
+> 
+> 
+> 	
+> 	
