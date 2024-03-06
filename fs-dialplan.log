@@ -1,0 +1,38 @@
+diff flexydial_bkp_170224/fs-dialplan/callcenter.js flexydial/fs-dialplan/callcenter.js
+164,168c164
+< 	// var destination_number = req.body['Channel-Caller-ID-Number'].slice(-10)
+< 	// if(req.body['Channel-Caller-ID-Number'].length >=4 && req.body['Channel-Caller-ID-Number'].length <=20){
+< 	// 	var destination_number = req.body['Channel-Caller-ID-Number']
+< 	// }
+< 	var destination_number = req.body['Channel-Caller-ID-Number']
+---
+> 	var destination_number = req.body['Channel-Caller-ID-Number'].slice(-10)
+245,249c241
+< 		// destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+< 		// if(req.body['Channel-Caller-ID-Number'].length >=4 && req.body['Channel-Caller-ID-Number'].length <=20){
+< 		// 	var destination_number = req.body['Channel-Caller-ID-Number']
+< 		// }
+< 		var destination_number = req.body['Channel-Caller-ID-Number']
+---
+> 		destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+370,374c362,363
+< 			    // destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+< 				// if(req.body['Channel-Caller-ID-Number'].length >=4 && req.body['Channel-Caller-ID-Number'].length <=20){
+< 				// 	var destination_number = req.body['Channel-Caller-ID-Number']
+< 				// }
+< 				var destination_number = req.body['Channel-Caller-ID-Number']
+---
+> 			    destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+> 				
+377,382c366
+< 					// destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+< 					// if(req.body['Channel-Caller-ID-Number'].length >=4 && req.body['Channel-Caller-ID-Number'].length <=20){
+< 					// 	var destination_number = req.body['Channel-Caller-ID-Number']
+< 					// }
+< 					console.log(req.body)
+< 					var destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+---
+> 					destination_number = req.body['Caller-Caller-ID-Number'].slice(-10)
+389d372
+< 					util.log(destination_number+" "+dialed_uuid+" "+"inbound_channel_bridge")
+Common subdirectories: flexydial_bkp_170224/fs-dialplan/node_modules and flexydial/fs-dialplan/node_modules
