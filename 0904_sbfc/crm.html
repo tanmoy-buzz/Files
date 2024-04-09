@@ -1,0 +1,2692 @@
+{% extends "agent/agent_base.html" %}
+{% load static %}
+{% load getattribute %}
+{% block agent-header %}Contact Information{% endblock agent-header %}
+{% block agent-breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page"><i class="fas fa-home"></i></li>
+{% endblock agent-breadcrumb %}
+
+{% block agent-content %}
+<script src="{% static 'js/socket.io.js' %}"></script>
+<div id="mb_dialer_screen" class="d-none d-sm-block">
+	<div class="d-sm-none">
+		<div v-cloak id="agent_mobile_info_vue">
+			<div v-show="show_camp" class="badge">
+				<span class="text-dark pb-2">Campaign :</span>
+				<strong class="text-info">${camp_name}</strong>
+			</div>
+			<div class="dropdown badge" style="position: static;">
+				<span class="text-dark pb-2">Status :</span>
+				<span class="dropdown-toggle" id="state_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true" v-bind:style="[state == 'Idle' || state=='' ? {'cursor':'pointer'} : {'pointer-events':'none'} ]">
+					<strong :class="[show_camp ? 'text-success':'text-danger']">${selected_status}</strong>
+				</span>
+				<div class="dropdown-menu navbar-dropdown" aria-labelledby="state_dropdown">
+					<a v-if="show_camp" class="dropdown-item">Ready</a>
+					<a v-else class="dropdown-item">NotReady</a>
+					<div class="dropdown-divider"></div>
+					<a v-for="value,key in agent_breaks" class="dropdown-item" v-on:click.stop="selectBreak(value.name,value.break_time,value.inactive_on_exceed)">${value.name}</a>
+				</div>
+			</div>
+			<div class="dropdown badge" style="position: static;">
+				<span class="text-dark pb-2">Status :</span>
+				<span class="dropdown-toggle" id="state_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+				</span>
+				<div class="dropdown-menu navbar-dropdown" aria-labelledby="state_dropdown">
+					<div class="dropdown-divider"></div>
+					<a v-for="value,key in break_timing" class="dropdown-item" ><strong>${key}:</strong>${value}</a>
+				</div>
+			</div>
+			<div v-show="show_camp" class="badge">
+				<span class="text-dark pb-2">State :</span>
+				<strong class="text-warning">${state}</strong>
+			</div>
+			<div v-show="!show_camp && on_break " class="badge">
+				<span class="text-dark pb-2">State :</span>
+				<strong class="text-warning">${state}</strong>
+			</div>
+		</div>
+	</div>
+	<div v-cloak id="call_statusinfo">
+		<ul :class="[show_call_info ? 'mb-1':'mb-1 d-none']">
+			<li>
+				<div class="header_call text-center">
+					<span v-if="!show_caret" class="mr-1"><i class="fas fa-caret-right text-success" aria-hidden="true"></i></span>
+					<span class="mr-2"><i class="fas fa-user" aria-hidden="true"></i></span>
+					Phone Number :
+					<span class="ml-2 font-weight-bold">${numeric}</span>
+					<span class="ml-2 d-inline-flex">
+						<button v-show="show_caret && agent_info_vue.state== 'Feedback'" class="btn btn-inverse-success btn-sm px-1 py-1" @click="makeAlternateCall(true)">
+							<i class="fas fa-phone fa-rotate-90 fa-sm"></i>
+						</button>
+					</span>
+				</div>
+			</li>
+			<li>
+				<div class="header_call justify-content-center d-flex">
+					<span v-if="show_caret" class="mr-1"><i class="fas fa-caret-right text-success" aria-hidden="true"></i></span>
+					<span><i class="fa fa-users" aria-hidden="true"></i></span>
+					<span v-if="alt_numeric.length == 0" class="ml-2" style="width:180px">Alt Numeric :</span>
+					<span v-else>
+						<select  class="ml-2 font-weight-bold form-control alt-number-select" v-model="selected_alt_numeric">
+							<option v-for="alt_num in alt_numeric" :value="alt_num['alt_value']">${alternateNameNumber(alt_num)}</option>
+						</select>
+					</span>
+					<span class="ml-2 d-inline-flex">
+						<button class="btn btn-inverse-dark btn-sm px-1 py-0 mr-1" data-toggle="popover" data-placement="bottom" title="Add Alternate Number" data-html="true">
+							<i class="fas fa-plus fa-sm"></i>
+						</button>
+						<button v-show="show_alt_dial_btn" class="btn btn-inverse-success btn-sm px-1 py-0 mr-1" @click="makeAlternateCall(false)">
+							<i class="fas fa-phone fa-rotate-90 fa-sm"></i>
+						</button>
+					</span>
+					<div id="popper-content" class="popper-content d-none" style="white-space: nowrap;">
+						<div v-for="alt_num, index in alt_numeric" class="mb-1 d-flex" v-bind="index">
+							<span class="mr-1">${index+1}.</span>
+							<div class="editable-input mr-1" style="width:125px">
+								<input type="text" class="form-control form-control-sm p-1" v-model="alt_num['alt_label']">
+							</div>
+							<div class="editable-input mr-1" style="width:125px">
+								<input type="text" class="form-control form-control-sm p-1" v-model="alt_num['alt_value']" onkeypress="return isNumber(event)">
+							</div>
+							<div class="editable-buttons mr-1">
+								<span v-if="Object.keys(alt_numeric).length > 1" @click="removeAlternateNumber(index)" style="font-size: 18px; cursor: pointer;">
+									<i class="fas fa-times-circle text-danger remove-alternate"></i>
+								</span>
+								<span v-if="index+1 == Object.keys(alt_numeric).length && index+1 < 5" @click="addAlternateNumber(index+1)" style="font-size: 18px; cursor: pointer;">
+									<i class="fa fa-plus-circle text-success add-alternate"></i>
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</li>
+			<li>
+				<div class="header_call text-center">
+					<span class="mr-2"><i class="fas fa-exchange-alt" aria-hidden="true"></i></span>
+					Callflow :
+					<span class="ml-2 font-weight-bold">${callflow}</span>
+				</div>
+			</li>
+			<li>
+				<div class="header_call text-center">
+					<span class="mr-2"><i class="fa fa-map-marker" aria-hidden="true"></i></span>
+					Status :
+					<span class="ml-2 font-weight-bold">${status}</span>
+				</div>
+			</li>
+		</ul>
+	</div>
+	<div id="cust-info">
+		<ul class="nav nav-tabs nav-justified" id="cust-info-nav" role="tablist">
+			<li class="nav-item">
+				<a class="nav-link active py-sm-2 px-sm-2 text-bold show" id="contact-info" data-toggle="tab" href="#contact-info-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-user mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Contact Info</span>
+				</a>
+			</li>
+			<li class="nav-item d-none" id="list_li">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold show" id="list-info" data-toggle="tab" href="#list-info-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-users mr-sm-2"></i>
+					<span class="d-none d-block d-sm-inline">List Management</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold show" id="call-history-tab" data-toggle="tab" href="#calls-history-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-history mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Call History</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold disabled" id="relation_tag_link" data-toggle="tab" href="#relation-tag-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-user-tag mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Relationship Tag</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold disabled" id="feedback_tab_link" data-toggle="tab" href="#feedback-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-comment-alt mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Feedback</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold show" id="script-tab" data-toggle="tab" href="#scripts-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-file mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Scripts</span>
+				</a>
+			</li>
+			<li class="nav-item d-none" id="iframe_tab_li">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold " id="iframe_tab_link" data-toggle="tab" href="#iframe-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-cogs mr-sm-2"></i>
+					<span class="d-block d-sm-inline">API</span>
+				</a>
+			</li>
+			<li class="nav-item d-none" id="sms_tab">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold " id="sms_tab_link" data-toggle="tab" href="#sms-tab" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-comment mr-sm-2"></i>
+					<span class="d-block d-sm-inline">SMS</span>
+				</a>
+			</li>
+			<li class="nav-item d-none" id="email_tab">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold " id="email_tab_link" data-toggle="tab" href="#email-tab-content" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-envelope-square mr-sm-2"></i>
+					<span class="d-block d-sm-inline">Email</span>
+				</a>
+			<li class="nav-item" id="documents_tab">
+				<a class="nav-link py-sm-2 px-sm-2 text-bold " id="documents_tab_link" data-toggle="tab" href="#documents-tab-content" role="tab" aria-controls="home" aria-selected="true">
+					<i class="fas fa-envelope-square mr-sm-2"></i>
+					<span class="d-block d-sm-inline">View Documents</span>
+				</a>
+			</li>
+		</ul>
+		<div class="tab-content pt-2 px-0 px-sm-3">
+			<div class="tab-pane fade" id="calls-history-tab" role="tabpanel" aria-labelledby="call-history-tab">
+				<h6 class="d-block d-sm-none mobile-tab-header">
+					Call History
+				</h6>
+				<div class="row">
+					<div class="col-12" style="width: 100px">
+						<table id="call-history-table" class="table display table-striped nowrap" cellspacing="0" style="width:100%">
+							<thead>
+								<tr>
+									<th data-data="customer_cid">Phone Number</th>
+									<th data-data="user">Agent</th>
+									<th data-data="campaign_name">Campaign</th>
+									<th data-data="uniqueid">Unique Id</th>
+									<th data-data="callflow">Callflow</th>
+									<th data-data="diallereventlog.init_time">Calling Time</th>
+									<th data-data="diallereventlog.hangup_time">Hangup Time</th>
+									<th data-data="diallereventlog.call_duration">Call Duration</th>
+									<th data-data="dialed_status">Dialed Status</th>
+									<th data-data="primary_dispo">Disposition</th>
+									<th data-data="comment" class="comment-field">Comment</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade show active" id="contact-info-tab" role="tabpanel" aria-labelledby="contact-info-tab">
+			<div class="text-sm-right" id="search_crm_field">
+				<div class="form-inline mobile_no_search_div d-none">
+						<select class="form-control select2-class form-control-sm mr-2 mb-2 mb-sm-0" id="field_search_by">
+							<option value="mobile_no">Mobile No</option>
+							<option value="loan_no">Loan No</option>
+						</select>
+						<label class="text-left srchlbl mr-2 mb-2 mb-sm-0">
+							<input type="search" id="mobile_no_search" class="form-control form-control-sm">
+						</label>
+						<button class="btn btn-inverse-primary btn-sm mb-2 mb-sm-0 btn-rounded p-2" id="search_contact"><i class="fas fa-search"></i></button>
+					</div>
+					<button class="btn btn-sm btn-primary btn-primary-glow d-none" id='dap_details' style="float:left;">DAP Details</button>
+					<label class="text-sm-left d-flex d-sm-inline-block srchlbl px-4 px-sm-0">
+						<!-- <span class="d-none d-sm-inline">Search:</span> -->
+						<div class="input-group-sm d-inline-flex w-100">
+						<input type="search" id="search_label" class="form-control form-control-sm border-right-0" placeholder="Search here">
+						 <span class="input-group-append">
+						<div class="input-group-text bg-transparent border-left-0"><i class="fa fa-search"></i></div>
+					</span></div>
+					</label>
+				</div>
+				
+				<!-- <a class="mb-2 d-none" style="margin-bottom: 15px;" id="back_to_contact">Back To Contact List</a> -->
+				<fieldset>
+					<form id="editable-form" class="editable-form">
+						<div class="accordion accordion-solid-header" id="cust_info_accordion" role="tablist">
+							<div v-cloak id="mb_call_statusinfo" class="card">
+								<div class="card-header p-0" role="tab">
+									<h6 class="mb-0">
+										<a data-toggle="collapse" href="#section_collaps_basicinfo" aria-expanded="true" aria-controls="collapse-1" class="sub-dispo-heading text-capitalize px-3 py-2">
+											Basic Information
+										</a>
+									</h6>
+								</div>
+								<div id="section_collaps_basicinfo" class="collapse collapse-div show" role="tabpanel" aria-labelledby="lead-heading" data-parent="#cust_info_accordion">
+									<div class="card-body p-3">
+										<div class="row">
+											<div class="col-6">
+												<div class="form-group row mb-0">
+													<label for="numeric" class="text-capitalize col-sm-4 col-form-label mb-0">Primary Number :</label>
+													<span class="col-sm-8 ml-2 d-inline-flex">
+														<label class="font-weight-bold col-form-label mb-0 pt-0 pt-sm-3" style="color:rgba(0, 0, 0, 0.6)">${numeric}</label>
+														<button v-show="show_caret && agent_info_vue.state== 'Feedback'" type="button" class="btn btn-inverse-success btn-sm px-1 py-1" @click="makeAlternateCall(true)">
+															<i class="fas fa-phone fa-rotate-90 fa-sm"></i>
+														</button>
+													</span>
+												</div>
+											</div>
+											<div class="col-6">
+												<div class="form-group row mb-0">
+													<label for="numeric" class="text-capitalize col-sm-4 col-form-label mb-0">Alt Number :</label>
+													<div class="col-sm-8 d-flex">
+														<select  class="font-weight-bold form-control alt-number-select" v-model="selected_alt_numeric">
+															<option v-for="alt_num in alt_numeric" :value="alt_num['alt_value']">${alternateNameNumber(alt_num)}</option>
+														</select>
+														<span class="ml-2 d-inline-flex">
+															<button type="button" class="btn btn-inverse-dark btn-sm px-1 py-0 mr-1" data-toggle="popover" data-placement="bottom" title="Add Alternate Number" data-html="true">
+																<i class="fas fa-plus fa-sm"></i>
+															</button>
+															<button type="button" v-show="show_alt_dial_btn" class="btn btn-inverse-success btn-sm px-1 py-0 mr-1" @click="makeAlternateCall(false)">
+																<i class="fas fa-phone fa-rotate-90 fa-sm"></i>
+															</button>
+														</span>
+														<div id="mb-popper-content" class="popper-content d-none" style="white-space: nowrap;">
+															<div v-for="alt_num, index in alt_numeric" class="mb-1" v-bind="index">
+																<span>${index+1}.</span>
+																<div class="editable-input" style="width:125px">
+																	<input type="text" class="form-control form-control-sm p-1" v-model="alt_num['alt_label']">
+																</div>
+																<div class="editable-input" style="width:125px">
+																	<input type="text" class="form-control form-control-sm p-1" v-model="alt_num['alt_value']" onkeypress="return isNumber(event)" inputmode="numeric">
+																</div>
+																<div class="editable-buttons">
+																	<span v-if="Object.keys(alt_numeric).length > 1" @click="removeAlternateNumber(index)" style="font-size: 18px; cursor: pointer;">
+																		<i class="fas fa-times-circle text-danger remove-alternate"></i>
+																	</span>
+																	<span v-if="index+1 == Object.keys(alt_numeric).length && index+1 < 5" @click="addAlternateNumber(index+1)" style="font-size: 18px; cursor: pointer;">
+																		<i class="fa fa-plus-circle text-success add-alternate"></i>
+																	</span>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div v-cloak id="vue">
+								<div class="card d-none">
+									<div class="card-header p-0" role="tab" id="basic_info">
+										<h6 class="mb-0">
+											<a data-toggle="collapse" href="#section_collaps_basicinfo" aria-expanded="true" aria-controls="collapse-1" class="sub-dispo-heading text-capitalize px-3 py-2">
+												Basic Information
+											</a>
+										</h6>
+									</div>
+									<div id="section_collaps_basicinfo" class="collapse collapse-div show" role="tabpanel" aria-labelledby="lead-heading" data-parent="#cust_info_accordion">
+										<div class="card-body p-3">
+											<div class="row">
+												<div class="col-md-6">
+													<div class="form-group row mb-0">
+														<label for="numeric" class="text-capitalize col-sm-4 col-form-label mb-0">phone number<span class="float-right">:</span></label>
+														<label id="phone_number" class="font-weight-bold col-sm-8 col-form-label mb-0" style="">
+															${basic_field_data.numeric}
+														</label>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group row mb-0">
+														<label for="first_name" class="text-capitalize col-sm-4 col-form-label mb-0">first name<span class="float-right">:</span></label>
+														<label v-show="edit_basic_field !== 'first_name'" class="font-weight-bold col-sm-8 col-form-label mb-0" v-on:click="editBasicField('first_name')" style="cursor: pointer;">
+															${basic_field_data.first_name}
+														</label>
+														<div v-show="edit_basic_field == 'first_name'" class="col-sm-8">
+															<input type="text" class="form-control crm-form-control" v-model="basic_field_data.first_name" v-on:blur="edit_basic_field = null" :ref="'first_name'">
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group row mb-0">
+														<label for="last_name" class="text-capitalize col-sm-4 col-form-label mb-0">last name<span class="float-right">:</span></label>
+														<label v-show="edit_basic_field !== 'last_name'" class="font-weight-bold col-sm-8 col-form-label mb-0" v-on:click="editBasicField('last_name')" style="cursor: pointer;">
+															${basic_field_data.last_name}
+														</label>
+														<div v-show="edit_basic_field == 'last_name'" class="col-sm-8">
+															<input type="text" class="form-control crm-form-control" v-model="basic_field_data.last_name" v-on:blur="edit_basic_field = null" :ref="'last_name'">
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group row mb-0">
+														<label for="email" class="text-capitalize col-sm-4 col-form-label mb-0">email<span class="float-right">:</span></label>
+														<label v-show="edit_basic_field !== 'email'" class="font-weight-bold col-sm-8 col-form-label mb-0" v-on:click="editBasicField('email')" style="cursor: pointer;">
+															${basic_field_data.email}
+														</label>
+														<div v-show="edit_basic_field == 'email'" class="col-sm-8">
+															<input type="email" class="form-control crm-form-control" v-model="basic_field_data.email" v-on:blur="edit_basic_field = null" :ref="'email'">
+														</div>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="form-group row mb-0">
+														<label for="status" class="text-capitalize col-sm-4 col-form-label mb-0">status<span class="float-right">:</span></label>
+														<label class="font-weight-bold col-sm-8 col-form-label mb-0" style="">
+															${basic_field_data.status}
+														</label>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<!-- <form id="dynamic_crm_fields"> -->
+								<div v-for="item, key in ordered_section(field_schema)" class="card" :id="item.section_name|replace">
+									<div class="card-header p-0" role="tab" :id="'section_heading_'+key">
+										<h6 class="mb-0">
+											<a data-toggle="collapse" :href="'#section_collaps_'+key" aria-expanded="true" aria-controls="collapse-1" class="sub-dispo-heading  accordion-solitext-capitalize collapsed px-3 py-2">
+												${item.section_name|replace_undersquare}
+											</a>
+										</h6>
+									</div>
+									<div :id="'section_collaps_'+key" v-bind:class="[key > 0 ?'collapse collapse-div': 'show']"  class=" collapse-div " role="tabpanel" aria-labelledby="lead-heading" >
+										<div class="card-body p-3">
+											<div class="row lista1">
+												<template v-for="field, field_index in ordered_field(item.section_fields)">
+													<div class="col-6 lsname" :data-parent="'#section_collaps_'+key">
+														<div v-if="field.field_type != 'checkbox'" class="form-group row mb-0">
+															
+															<!-- static nameing for fields start -->
+															<label :for="field.field|replace" v-if="field.db_field == 'est_gold_wt'" class="text-capitalize col-sm-4 col-form-label mb-0">Gross Weight <span class="float-sm-right">:</span></label>
+															<label :for="field.field|replace" v-else-if="field.db_field == 'est_ornament_cnt'" class="text-capitalize col-sm-4 col-form-label mb-0">Ornament Count<span class="float-sm-right">:</span></label>
+															<label :for="field.field|replace" v-else-if="field.db_field == 'ornament_desc'" class="text-capitalize col-sm-4 col-form-label mb-0">Ornament Description<span class="float-sm-right">:</span></label>
+															<label :for="field.field|replace" v-else-if="field.db_field == 'filler1'" class="text-capitalize col-sm-4 col-form-label mb-0">ELoc<span class="float-sm-right">:</span></label>
+																<!-- static nameing for fields start -->
+															<label v-else :for="field.field|replace" class="text-capitalize col-sm-4 col-form-label mb-0">${field.field|replace_undersquare} <span v-show="field.required" class="star">*</span><span class="float-sm-right">:</span></label>
+															
+															<label v-if="field.db_field == 'est_gold_wt' | field.db_field == 'pincode'" :for="field.field|replace"  :class="[field.db_field]"  class="font-weight-bold col-sm-6 col-form-label mb-0 pt-0 pt-sm-3" key="field_index" v-on:click="editField($event,item.db_section_name,field_index,field.editable,field.field_type)" v-show="edit_field !== item.db_section_name+field_index" :style="[field.editable ? {'cursor':'pointer'}:{},{'color':'rgba(0, 0, 0, 0.6)'}]">${field_data[item.db_section_name][field.db_field]}</label>
+															<label v-else :for="field.field|replace"  :class="[field.db_field]"  class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3" key="field_index" v-on:click="editField($event,item.db_section_name,field_index,field.editable,field.field_type)" v-show="edit_field !== item.db_section_name+field_index" :style="[field.editable ? {'cursor':'pointer'}:{},{'color':'rgba(0, 0, 0, 0.6)'}]">${field_data[item.db_section_name][field.db_field]}</label>					
+
+															<div v-show="edit_field == item.db_section_name+field_index" :class="[field.db_field == 'est_gold_wt' | field.db_field == 'pincode' ? 'col-sm-6' : 'col-sm-8']">
+																<!-- text field -->
+																<input v-if="field.field_type == 'text'" type="text" :class=[field.db_field] class="form-control crm-form-control " :readonly=!field.editable v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name" :maxlength="field.size" v-on:keypress="isLetter($event, field.db_field)">
+																
+																<!-- textarea -->
+																<textarea v-else-if="field.field_type == 'textarea'" type="text" class="form-control" :readonly=!field.editable v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name" rows="4" :maxlength="field.size"></textarea>
+																<!-- radio group -->
+																<div v-else-if="field.field_type == 'radio'" :id="field.field" class="form-inline" :ref="item.db_section_name">
+																	<div class="form-check mr-sm-3" v-for="option in split_string(field.options)">
+																		<label :for="field.field|replace" class="form-check-label">
+																			<input class="form-check-input" type="radio" :value="option" :id="option" :disabled="!field.editable" v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null">${option}<i class="input-helper"></i>
+																		</label>
+																	</div>
+																</div>
+																<!-- date field -->
+																<datepicker v-else-if="field.field_type == 'datefield'" :value=field_data[item.db_section_name][field.db_field] v-on:set-date="field_data[item.db_section_name][field.db_field] = $event" v-on:blur="edit_field = null" :ref="item.db_section_name"></datepicker>
+																<!-- Dropdowns -->
+																<select v-else-if="field.field_type == 'dropdown'" :class="[field.db_field]" class="form-control crm-form-control" :disabled=!field.editable v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name">
+																	<option v-for="option in split_string(field.options)" :id="option" :value="option">${option}</option>
+																</select>
+																<!-- multiselect dropdown -->
+																<select2 v-else-if="field.field_type == 'multiselect'" :options="split_string(field.options)" class="form-control crm-form-control" :disabled=!field.editable multiple="true" v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name"></select2>
+																<!-- integer field -->
+																<input v-else-if="field.field_type == 'integer'" type="text" class="form-control crm-form-control" onkeypress="return isNumber(event)" :maxlength="field.size" :readonly=!field.editable v-model.number="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name">
+																<!-- float field -->
+																<input v-else-if="field.field_type == 'float'" type="number" class="form-control crm-form-control" :maxlength="field.size" :readonly=!field.editable v-model.number="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null" :ref="item.db_section_name" step="0.01">
+																<!-- timefield -->
+																<timepicker v-else-if="field.field_type == 'timefield'" :id="field.field|replace" :target="'#'+field.field|replace" v-on:set-time="field_data[item.db_section_name][field.db_field] = $event" :value=field_data[item.db_section_name][field.db_field] v-on:blur="edit_field = null" :ref="item.db_section_name"></timepicker>
+																<!-- datetimefield -->
+																<datetimepicker v-else-if="field.field_type == 'datetimefield'" :id="field.field|replace" :target="'#'+field.field|replace" v-on:set-datetime="field_data[item.db_section_name][field.db_field] = $event" :value=field_data[item.db_section_name][field.db_field] v-on:blur="edit_field = null" :ref="item.db_section_name"></datetimepicker>
+																<!-- multiple checkbox -->
+																<div class="form-inline" v-else-if="field.field_type == 'multicheckbox'" :ref="item.db_section_name">
+																	<div class="form-check mr-sm-3" v-for="option in split_string(field.options)">
+																		<label class="form-check-label">
+																			<input class="form-check-input" type="checkbox" :value="option" :id="option" :disabled=!field.editable v-model="field_data[item.db_section_name][field.db_field]" v-on:blur="edit_field = null">${option}<i class="input-helper"></i>
+																		</label>
+																	</div>
+																</div>
+															</div>
+															<label v-if="field.db_field == 'est_gold_wt'" class="font-weight-bold col-sm-2 col-form-label mb-0 pt-0 pt-sm-3">in gms</label>
+															<button v-if="field.db_field == 'pincode'" type='button' class="btn btn-sm btn-primary" id="showmaps"><i class="far fa-map" style="font-size: 1rem;"></i> Maps</button>
+															<span v-if="field.db_field == 'pincode'" id="mapmyindia_error" class="help-block form-error d-none"></span>
+															<span v-show="field.required && (!field_data[item.db_section_name][field.db_field] || field_data[item.db_section_name][field.db_field].length == 0 )&& required_crm  " class="help-block form-error col-sm-8 offset-md-4 my-0">This is a required field</span>
+														</div>
+														<div v-else class="form-inline row mb-0">
+															<label :for="field.field" class="col-form-label text-capitalize mb-0 px-2">${field.field}:</label>
+															<!-- checkbox -->
+															<div v-if="field.field_type == 'checkbox'" class="form-check">
+																<label class="form-check-label">
+																	<input type="checkbox" class="form-check-input" :disabled=!field.editable v-model="field_data[item.db_section_name][field.db_field]" :ref="item.db_section_name">
+																	<i class="input-helper" ></i>
+																</label>
+															</div>
+														</div>
+													</div>
+												</template>
+												<template v-if="item.section_name == 'appointment_details'">
+													<div class="col-6 lsname" :data-parent="'#section_collaps_'+key">
+														<div class="form-group row mb-0">
+															<label for="" class="text-capitalize col-sm-4 col-form-label mb-0"><span class="float-sm-right">:</span>Schedule Time</label>
+															<div v-if="!(field_data['appointment_details']['agent_details'] && field_data['appointment_details']['agent_details'].length > 0)" class="col-sm-8 align-items-center">
+																<div class="d-flex ">
+																	<cb-datetimepicker id="appointment_datetime" :target="'#appointment_datetime'" v-on:set-datetime="field_data['appointment_details']['schedule_time'] = $event" :value="field_data['appointment_details']['schedule_time']"></cb-datetimepicker>
+																	<div>
+																		<button type='button' class="btn btn-sm btn-primary" id="check_appointment_availablity"><i class="far fa-calendar-check" style="font-size: 1rem;"></i> Check Avaliblity</button>
+																	</div>
+																</div>
+																<span id="check_appointment_error" class="help-block form-error d-none"></span>
+															</div>
+
+															<label v-else for="" class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${field_data['appointment_details']['schedule_time']}</label>
+														</div>
+													</div>
+													<div v-if="field_data['appointment_details']['agent_details'] && field_data['appointment_details']['agent_details'].length > 0" class="col-12 lsname" :data-parent="'#section_collaps_'+key">
+														<div class="form-group row mb-0">
+															<label for="" class="text-capitalize col-sm-2 col-form-label mb-0"><span class="float-sm-right">:</span>Appointed Agents</label>
+															<div class="col-sm-10 d-flex align-items-center">
+																<label for="" class="font-weight-bold col-form-label mb-0 pt-0 pt-sm-3 mr-3">${book_agents_name}</label>
+																<div>
+																	<button type='button' class="btn btn-sm btn-warning" id="unbook_appointment"><i class="fas fa-unlock" style="font-size: 1rem;"></i> UnBook</button>
+																</div>
+															</div>
+														</div>
+													</div>
+												</template>
+												<!-- <template v-if="item.section_name == 'address_details'" >
+													<button  type='button' class="btn btn-sm btn-primary" id="check_appointment_availablity"><i class="far fa-calendar-check" style="font-size: 1rem;"></i> Check Avaliblity</button>
+												</template> -->
+											</div>
+										</div>
+									</div>
+								</div>
+								<!-- </form> -->
+							</div>
+						</div>
+					</form>
+				</fieldset>
+			</div>
+			<div class="tab-pane fade" id="feedback-tab" role="tabpanel" aria-labeledby="feedback-tab">
+				<div id="dispo_vue" class="mt-sm-3">
+					<div class="accordion accordion-solid-header" id="accordion" role="tablist">
+						<div class="card">
+							<div class="card-header p-0" role="tab" id="dispo-heading">
+								<h6 class="mb-0">
+									<a data-toggle="collapse" href="#dispo-collaps" aria-expanded="true" aria-controls="collapse-1" class="sub-dispo-heading text-capitalize font-weight-bold px-3 py-2 collapsed">
+										Select Disposition
+									</a>
+								</h6>
+							</div>
+							<div id="dispo-collaps" class="collapse show collapse-div" role="tabpanel" aria-labelledby="lead-heading" data-parent="#accordion">
+								<div class="card-body px-4">
+									<form id="dispo-form">
+										<transition :name="slideTransition" mode="out-in">
+											<div v-if="selected_pd == ''" key="save">
+												<div class="row">
+													<!-- <label for="primary_dispo" class="col-sm-4 col-form-label">Primary Dispositon :</label>
+													<div  class="col-sm-8"> -->
+														<!-- <select id="primary_dispo" class="crm-form-control" name="primary_dispo" data-validation="required" v-model="primaryDispo_key">
+																<option value="" selected disabled>Select Primary Disposition</option>
+																<option v-for="item,key in dispo_schema" :value="key+1">${item.name}</option>
+														</select> -->
+															<!-- <div class="row"> -->
+														<div v-for="item,key in dispo_schema" class="col-6 col-sm-4 col-md-2 pb-2 px-1">
+															<primary-dispo-btn :dispo_color="item.color_code" v-on:primary-select="primaryDispo(key+1)" :dispo_name="item.name">
+															</primary-dispo-btn>
+															<!-- <button type="button" class="btn btn-outline-dark btn-fw w-100 rounded-0 border-0 font-weight-bold" :id="item.name|replace" :class="selectedClass(key)" @click="primaryDispo(key+1)" :title="item.name">
+																${item.name}
+															</button> -->
+														</div>
+													<!-- </div> -->
+													<!-- </div> -->
+												</div>
+											</div>
+											<div v-else key="edit">
+												<div class="d-flex">
+													<span @click="reset_dispoform()" style="cursor: pointer;">
+														<i class="fas fa-arrow-left mr-2"></i>
+													</span>
+													<h5 class="font-weight-bold">${selected_pd}</h5>
+												</div>
+												<div v-if="secondry_dispo.length && primaryDispo_type == 'dropdown'" class="row">
+													<label for="sub_dispo" class="col-sm-4 col-form-label">Sub Dispositon :</label>
+													<div class="col-sm-8">
+														<select id="sub_dispo" class="crm-form-control" @change="selectSubdispo($event.target.selectedIndex)" name="sub_dispo" data-validation="required">
+															<option value="" selected>Select Sub Disposition</option>
+															<option v-for="sub_dispo,index in secondry_dispo" :value="sub_dispo.name">${sub_dispo.name}</option>
+														</select>
+													</div>
+												</div>
+												<div v-if="Object.keys(selected_children).length && primaryDispo_type == 'dropdown'" class="row">
+													<disposition-component v-for="sub_dispo,index in secondry_dispo"
+																		v-if="sub_dispo.name == selected_children.name"
+																		:key="index"
+																		:sub_dispo="sub_dispo"
+																		:dispo_data="dispo_data[selected_children.name]"
+																		@child-input ="dispo_data[sub_dispo.name] = $event"
+													></disposition-component>
+												</div>
+												<div v-if="primaryDispo_type == 'multifield'" class="row">
+													<disposition-component v-for="sub_dispo,index in secondry_dispo"
+																		:key="index"
+																		:sub_dispo="sub_dispo"
+																		:dispo_data="dispo_data[sub_dispo.name]"
+																		@child-input ="dispo_data[sub_dispo.name] = $event"
+													></disposition-component>
+												</div>
+												<div v-if="showLeadUser" class="row">
+													<label for="update_lead_user" class="col-sm-4 col-form-label">Select User :</label>
+													<div class="col-sm-8">
+														<single-select class="crm-form-control"  name="sys_update_lead_user" :options="lead_user" value='' id="sys_update_lead_user">
+															<option value="">Select User</option>
+														</single-select>
+													</div>
+												</div>
+												<div v-show="static_dispo">
+													<div class="row">
+														<label for="Segment" class="col-sm-4 col-form-label">Segment Segregation :</label>
+														<div class="col-sm-8">
+															<select id="segment" class="crm-form-control" name="segment" data-validation="required">
+																<option value="" selected disabled>Select Segment</option>
+																<option value="DHFL_Home Loan">DHFL_Home Loan</option>
+																<option value="DHFL_LAP">DHFL_LAP</option>
+																<option value="Relince_Home Loan">Relince_Home Loan	</option>
+																<option value="Relince_LAP">Relince_LAP</option>
+																<option value="SBFC_LAP">SBFC_LAP</option>
+																<option value="SBFC_PL">SBFC_PL</option>
+																<option value="SBFC_BL">SBFC_BL</option>
+																<option value="SBFC_LAP">SBFC_LAP</option>
+															</select>
+														</div>
+													</div>
+													<div class="row">
+														<label for="department" class="col-sm-4 col-form-label">Department :</label>
+														<div class="col-sm-8">
+															<select id="department" class="crm-form-control" name="department" data-validation="required">
+																<option value="" selected disabled>Select Department</option>
+																<option value="Operation">Operation</option>
+																<option value="Business">Business</option>
+																<option value="Compliance">Compliance</option>
+																<option value="Finance">Finance</option>
+																<option value="HR">HR</option>
+																<option value="IT">IT</option>
+																
+															</select>
+														</div>
+													</div>
+													<div class="row">
+														<label for="query_type" class="col-sm-4 col-form-label">Query Type:</label>
+														<div class="col-sm-8">
+															<select id="query_type" class="crm-form-control" name="query_type" data-validation="required">
+																<option value="" selected disabled>Select Query Type</option>
+																<option value="Service Request">Service Request</option>
+																<option value="Compliant">Compliant</option>
+																<option value="Inquiry">Inquiry</option>
+															</select>
+														</div>
+													</div>
+													<div class="row">
+														<label for="query_category" class="col-sm-4 col-form-label">Query category:</label>
+														<div class="col-sm-8">
+															<select id="query_category" class="crm-form-control" name="query_category" data-validation="required">
+																<option value="" selected disabled>Select Query category</option>
+																<option value="SOA">SOA</option>
+																<option value="FCL">FCL</option>
+																<option value="Payment confirmation">Payment confirmation</option>
+																<option value="LOD">LOD</option>
+																<option value="Original property docs">Original property docs</option>
+																<option value="Provisional certificate">Provisional certificate</option>
+																<option value="Interest certificate">Interest certificate</option>
+																<option value="EMI deduction">EMI deduction</option>
+																<option value="Repayment schedule">Repayment schedule</option>
+																<option value="Refund">Refund</option>
+																<option value="CIBIL">CIBIL</option>
+																<option value="ECS">ECS</option>
+																<option value="PMAY">PMAY</option>
+																<option value="TDS">TDS</option>
+															</select>
+														</div>
+													</div>
+												</div>
+											</div>
+										</transition>
+									</form>
+								</div>
+							</div>
+						</div>
+						<div class="card">
+							<div class="card-header p-0" role="tab" id="extra-info-heading">
+								<h6 class="mb-0">
+									<a data-toggle="collapse" href="#extra-info-collaps" aria-expanded="true" aria-controls="collapse-1" class="sub-dispo-heading text-capitalize px-3 py-2 collapsed">
+										Extra Information
+									</a>
+								</h6>
+							</div>
+							<div id="extra-info-collaps" class="collapse collapse-div show" role="tabpanel" aria-labelledby="lead-heading" data-parent="#accordion">
+								<div class="card-body px-4">
+									<form id="extraInfo-form">
+										<div class="row">
+											<label for="comment" class="col-sm-4 col-form-label">Comment:</label>
+											<div class="col-sm-8">
+												<textarea rows="4" type="text" name="comment" class="form-control" id="comment" maxlength="500" style="height: 100px;"> </textarea>
+											</div>
+										</div>
+									</form>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="text-right px-4">
+					<button class="btn btn-primary mb-btn-primary" id="submit_customer_info" disabled>Save And Close</button>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="scripts-tab" role="tabpanel" aria-labelledby="script-tab">
+				<h6 class="d-block d-sm-none mobile-tab-header">Script</h6>
+				<div class="row">
+					<div class="col-sm-12">
+						<fieldset>
+							<div id="scriptContents">
+								<h5 id="script_name"></h5>
+								<hr>
+								<div id="script_description">
+								</div>
+							</div>
+						</fieldset>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="sms-tab" role="tabpanel" aria-labelledby="sms-tab">
+				<div class="row">
+					<div class="col-md-12">
+						<fieldset id="sms_templates">
+							<div id="scriptContents" class="p-0 p-sm-3">
+								<h5 class="mobile-tab-header" style="">SMS</h5>
+								<hr class="mt-0 d-none d-sm-block">
+								<div class="form-group row px-4 px-sm-0">
+									<label for="customer_name" class="col-md-2 col-form-label">
+										<b>Mobile Number<span class="star">*</span> : </b>
+									</label>
+									<div class="col-md-4">
+										<input type="text" class="form-control" name="customer_mo_no" id="customer_mo_no"  placeholder="Customer Mobile Number" v-model="customer_mo_no" required disabled/>  
+									</div>
+								</div>
+								<div class="form-group row mb-2 px-4 px-sm-0">
+									<div class="col-md-12" v-for="item in templates">
+										<div class="form-check">
+											<label class="form-check-label">
+												<input class="form-check-input" type="radio" name="sms_template" :id="'sms_template'+item.id" :value="item.id" required @click="setTemplateValue(item.id)" checked>
+												<i class="input-helper"></i>
+												<p v-html="item.name" :id="'sms_text'+item.id" style="display:contents" :title="item.text"></p>
+											</label>
+										</div>
+									</div>
+								</div>
+								<div class="form-group mb-2">
+									<div class="text-center">
+										<button class="btn btn-inverse-primary btn-sm btn-icon-text send_sms_btn" @click="sendSMS(campaign_id, selected_template, customer_mo_no)">
+											<i class="fab fa-telegram-plane btn-icon-prepend"></i>Send</button>
+									</div>
+								</div>
+							</div>
+						</fieldset>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="email-tab-content" role="tabpanel" aria-labelledby="email-tab-content">
+				<div class="row">
+					<div class="col-md-12">
+						<fieldset id="email_templates">
+							<div id="scriptContents" class="p-0 p-sm-3">
+								<h5 class="mobile-tab-header" style="">Email</h5>
+								<hr class="mt-0 d-none d-sm-block">
+								<div class="form-group row mb-0 px-4 px-sm-0">
+									<label for="from_email" class="col-md-2 col-form-label">
+										<b>To<span class="star">*</span> : </b>
+									</label>
+									<div class="col-md-4">
+										<input type="email" class="form-control" v-model="customer_email"  placeholder="customer email address" required/>  
+									</div>
+								</div>
+								<div class="form-group row mb-2 px-4 px-sm-0">
+									<label class="col-md-6 col-form-label">
+										<b>Email Templates</b>
+									</label>
+									<div class="col-md-12" v-for="item in templates">
+										<div class="form-check">
+											<label class="form-check-label">
+												<input class="form-check-input" type="radio" name="email_template" :id="'email_template'+item.id" :value="item.id" @click="setTemplateValue(item.id)" required>
+												<i class="input-helper"></i>
+												<p v-html="item.email_subject" :id="'email_subject_'+item.id" style="display:contents"></p>
+												<p v-html="item.email_body" :id="'email_body_'+item.id" style="display:contents; display: none"></p>
+											</label>
+										</div>
+									</div>
+								</div>
+								<div class="form-group mb-2">
+									<div class="text-center">
+										<button class="btn btn-inverse-primary btn-sm btn-icon-text send_email_btn" @click="sendEmail()">
+											<i class="fab fa-telegram-plane btn-icon-prepend"></i>Send</button>
+									</div>
+								</div>
+							</div>
+						</fieldset>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="list-info-tab" role="tabpanel" aria-labelledby="list-info-tab">
+				<h6 class="d-block d-sm-none mobile-tab-header">
+					List Management
+				</h6>
+				<div class="row">
+					<div class="col-sm-12" id="contacts_list_div">
+						<table class="table display table-striped nowrap" id="show_contact_list" style="width: 100%;">
+							<thead>
+								<tr>
+									<th data-data='id'>Contact Id</th>
+									<th data-data='first_name'>First Name</th>
+									<th data-data='last_name'>Last Name</th>
+									<th data-data='numeric'>Phone Number</th>
+									<th data-data='alt_numeric' class="alternate-number-list">Alternate Numbers</th>
+									<th data-data='status'>Status</th>
+									<th class="contactList_action">Action</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+				</div>
+				<div class="col-sm-12 show_inbound_contact_div d-none" >
+					<fieldset>
+						<table class="table display table-bordered" id="show_inbound_contact_list" style="width: 100%;">
+						   <thead>
+							   <tr>
+								   <th data-data='customer_name'>Customer Name</th>
+								   <th data-data='mobile_no'>Mobile No</th>
+								   <th data-data='loan_no'>Loan_No</th>
+								   <th data-data='loan_amt'>Loan Amount</th>
+								   <th class="contactList_action">Action</th>
+							   </tr>
+						   </thead>
+						   <tbody>
+						   </tbody>
+						</table>
+					</fieldset>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="iframe-tab" role="tabpanel" aria-labelledby="iframe-tab">
+				<div class="row">
+					<div class="col-sm-12">
+						<fieldset>
+							<iframe src="" width="100%" class="frame_class"></iframe>
+						</fieldset>
+					</div>
+				</div>
+			</div>
+			<div class="tab-pane fade" id="relation-tag-tab" role="tabpanel" aria-labelledby="relation-tag-tab">
+				<fieldset class="pb-3 mb-3" style="border-bottom: 1px dashed #ccc">
+					<h6 class="mobile-tab-header">Create Relationship Tagging</h6>
+					<div class="row px-3 px-sm-0">
+						<form class="col-sm-11" id="relation_tag_form">
+							<div class="row">
+								<label for="primary_tagging" class="col-sm-4 col-form-label">Select Tagging</label>
+								<div class="col-sm-8">
+									<select id="primary_tagging" class="crm-form-control" name="primary_tagging" data-validation="required" v-model="primaryTag_index">
+										<option value="" selected disabled>Select Tagging</option>
+										<option v-for="item,key in relationTag_list" :value="key+1">${item.name}</option>
+									</select>
+								</div>
+							</div>
+							<div v-if="secondryTag.length && relation_type == 'dropdown'" class="row">
+								<label for="sub_tagging" class="col-sm-4 col-form-label">Sub Tagging :</label>
+								<div class="col-sm-8">
+									<select id="sub_tagging" class="crm-form-control" @change="selectSubtag($event.target.selectedIndex)" name="sub_tagging" data-validation="required">
+										<option value="" selected>Select Sub Tagging</option>
+										<option v-for="sub_tagging,index in secondryTag" :value="sub_tagging.name">${sub_tagging.name}</option>
+									</select>
+								</div>
+							</div>
+							<div v-if="secondryTag.length && relation_type == 'dropdown'" class="row">
+								<disposition-component v-for="sub_tag,index in secondryTag"
+													v-if="sub_tag.name == selected_subtag.name"
+													:key="index"
+													:sub_dispo="sub_tag"
+													:dispo_data="relation_data[sub_tag.name]"
+													@child-input ="relation_data[sub_tag.name] = $event"
+								></disposition-component>
+							</div>
+							<div v-if="relation_type == 'multifield'" class="row">
+								<disposition-component v-for="sub_tag,index in secondryTag"
+													:key="index"
+													:sub_dispo="sub_tag"
+													:dispo_data="relation_data[sub_tag.name]"
+													@child-input ="relation_data[sub_tag.name] = $event"
+								></disposition-component>
+							</div>
+						</form>
+						<div class="col-sm-1 align-self-end mt-3 mb-3">
+							<button class="btn btn-primary mb-btn-primary" @click="addRelationTag">Add</button>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset class="py-3">
+					<h6 class="mobile-tab-header">Relaionship Taggings</h6>
+					<ul class="list-arrow">
+						<li v-for="tagDict,index in taggingData_list">
+							<label v-for="value,key in tagDict">
+								 ${value} >
+							</label>
+						</li>
+					</ul>
+				</fieldset>
+			</div>
+			<div class="tab-pane fade" id="documents-tab-content" role="tabpanel" aria-labelledby="documents-tab-content">
+				<div class="col-lg-12">
+              		<div class="card">
+                		<div class="card-body">
+                			<h4 class="card-title">KYC Documents</h4>
+                			<div class="row">
+							    <div class="col-md-12" >
+							        <fieldset id="kycdocuments_vue">
+							            <div class="row portfolio-grid">
+							            	<template v-if="documents.length > 0"> 
+
+							            		<div class="col-xl-3 col-lg-3 col-md-3 col-sm-6 col-12" v-for="(val,key) in documents">
+							                    <figcaption>
+							                        <h4>${ val.id_name }</h4>
+							                        <p><strong>Doc Number :</strong> ${ val.id_number }</p>
+							                    </figcaption>
+							                    <figure  style="background:none">
+							                    	<img v-if="val.image_content" :src="val.image_content" alt="image" v-on:click=opendocument(val.image_content)>
+							                    	<img v-else src="null" alt="Documents Not uploaded by customer">
+							                    </figure>
+							                </div>
+							            	</template>
+							            </div>
+							            <template v-else-if="doc_is_fetching" class="text-center">
+											<p colspan="4"><i class="fa fa-spinner fa-spin fa-2x text-dark"></i> Fetching available Documents...</p>
+										</template>
+										<template v-else-if="doc_is_error" class="text-center">
+											<p colspan="4">Can find the documents can you try again after sometime ...</p>
+										</template>
+										<template v-else class="text-center">
+											<p colspan="4">OOPS!!! Something wrong ...</p>
+										</template>
+							        </fieldset>
+							    </div>
+							</div>
+                		</div>
+                	</div>
+                </div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="loaded-contents" class="d-none">
+	<div id="contents-messages" class="row d-none">
+	</div>
+	<div id="contents-callbacks" class="card d-none">
+		<div class="card-body p-1 p-sm-3">
+			<h6 class="card-title mobile-tab-header"><a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>Total Callbacks
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#callback_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="total_callback_filter_modal" tabindex="-1" role="dialog" aria-labelledby="total_callback_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row">
+								<div class="col-sm-1">
+									<div class="form-group mb-2">
+										<label>Show</label>
+										<select class="custom-select custom-select-sm form-control form-control-sm custom_paginate_by" name="paginate_by" id="custom_total_callbacks_page">
+											<option value="10">10</option>
+											<option value="25">25</option>
+											<option value="50">50</option>
+											<option value="100">100</option>
+										</select>
+										
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search By:</label>
+										<select class="form-control form-control-sm" name="column_name" id="tcb_column_name">
+											<option value="">Select Column</option>
+											<option value="numeric">Phone Number</option>
+											<option value="campaign">Campaign</option>
+											<option value="customer_raw_data__customer_details__first_name">First Name</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search:</label>
+										<input type="text" class="form-control form-control-sm" id="tcb_search_by" placeholder="search" name="search_by">
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Filter by Date:</label>
+										<div id="date_filter_callback_total" class="input-group date datepicker">
+											<input type="text" class="form-control form-control-sm" name="callback_total_date" placeholder="YYYY-MM-DD">
+											<span class="input-group-addon input-group-append border-left">
+												<span class="far fa-calendar input-group-text p-1"></span>
+											</span>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-1 d-none d-sm-block">
+									<button type="button" class="btn btn-inverse-dark p-1 filter_contact mt-4" id="total_callback_filter_contact">
+										<i class="fas fa-filter"></i>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<table id="callback-list" class="table display table-striped nowrap" style="width:100%">
+			</table>
+			<div id="getcallbackcalls_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+		        </div>
+	            <div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="contents-abandonedcalls" class="row d-none">
+		<div class="card col-md-12 p-3">
+			<h6 class="card-title mobile-tab-header"><a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>Total AbandonedCalls</h6>
+			<table id="abandonedcall-list" class="table display table-striped nowrap" style="width:100%">
+			</table>
+			<div id="getabandoned_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+				</div>
+				<div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- <div id="contents-active-callbacks" class="row d-none">
+		<div class="card col-12 p-0 p-sm-3 pb-3">
+			<h6 class="card-title mobile-tab-header"><a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>Active Callbacks</h6>
+			<table id="active-callback-list" class="table display table-striped nowrap" style="width: 100%"></table>
+		</div>
+	</div> -->
+	<div id="contents-active-callbacks" class="card d-none">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				Active Callbacks
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#active_callbacks_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="active_callbacks_filter_modal" tabindex="-1" role="dialog" aria-labelledby="active_callbacks_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row">
+								<div class="col-sm-1">
+									<div class="form-group mb-2">
+										<label>Show</label>
+										<select class="custom-select custom-select-sm form-control form-control-sm custom_paginate_by" name="paginate_by" id="custom_active_callbacks_page">
+											<option value="10">10</option>
+											<option value="25">25</option>
+											<option value="50">50</option>
+											<option value="100">100</option>
+										</select>
+										
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Filter by Date:</label>
+										<div id="date_filter_active_callback_campaign" class="input-group date datepicker">
+											<input type="text" class="form-control form-control-sm" name="cpm_date" placeholder="YYYY-MM-DD">
+											<span class="input-group-addon input-group-append border-left">
+												<span class="far fa-calendar input-group-text p-1"></span>
+											</span>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-1 d-none d-sm-block">
+									<button type="button" class="btn btn-inverse-dark p-1 filter_contact mt-4" id="active_callback_filter_contact">
+										<i class="fas fa-filter"></i>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table id="active-callback-list" class="table display table-striped nowrap" style="width:100%">
+				</table>
+			</div>
+			<div id="active_callback_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+				</div>
+				<div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- <div id="contents-campaign-callbacks" class="row d-none">
+		<div class="card col-md-12 p-0 p-sm-3 pb-3">
+			<h6 class="card-title mobile-tab-header"><a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>Campaign Callbacks</h6>
+			<table id="campaign-callback-list" class="table display table-striped nowrap" style="width:100%">
+			</table>
+		</div>
+	</div> -->
+	<div id="contents-campaign-callbacks" class="card d-none">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				Campaign Callbacks
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#callback_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="callback_filter_modal" tabindex="-1" role="dialog" aria-labelledby="callback_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row">
+								<div class="col-sm-1">
+									<div class="form-group mb-2">
+										<label>Show</label>
+										<select class="custom-select custom-select-sm form-control form-control-sm custom_paginate_by" name="paginate_by" id="custom_camp_callbacks_page">
+											<option value="10">10</option>
+											<option value="25">25</option>
+											<option value="50">50</option>
+											<option value="100">100</option>
+										</select>
+										
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search By:</label>
+										<select class="form-control form-control-sm" name="column_name" id="ccb_column_name">
+											<option value="">Select Column</option>
+											<option value="numeric">Phone Number</option>
+											<option value="campaign">Campaign</option>
+											<option value="customer_raw_data__customer_details__first_name">First Name</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search:</label>
+										<input type="text" class="form-control form-control-sm" id="ccb_search_by" placeholder="search" name="search_by">
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Filter by Date:</label>
+										<div id="date_filter_callback_campaign" class="input-group date datepicker">
+											<input type="text" class="form-control form-control-sm" name="cpm_date" placeholder="YYYY-MM-DD">
+											<span class="input-group-addon input-group-append border-left">
+												<span class="far fa-calendar input-group-text p-1"></span>
+											</span>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-1 d-none d-sm-block">
+									<button type="button" class="btn btn-inverse-dark p-1 filter_contact mt-4" id="callback_filter_contact">
+										<i class="fas fa-filter"></i>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table id="campaign-callback-list" class="table display table-striped nowrap" style="width:100%">
+				</table>
+			</div>
+			<div id="campagin_callback_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+				</div>
+				<div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="contents-reconfirm-calls" class="row d-none">
+		<div class="card col-md-12 p-3">
+			<h6 class="card-title">Re-Confirm Appoinment Calls</h6>
+			<table id="campaign-reconfirm-list" class="table display table-striped nowrap" style="width:100%">
+			</table>
+		</div>
+	</div>
+	<div id="contents-campain-abandonedcalls" class="row d-none">
+		<div class="card col-md-12 p-0 p-sm-3 pb-3">
+			<h6 class="card-title mobile-tab-header"><a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>Campaign AbandonedCalls</h6>
+			<table id="campaign-abandonedcall-list" class="table display table-striped nowrap" style="width:100%"></table>
+			<div id="getcampaignabandonedcalls_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+		        </div>
+	            <div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="contents-agent-totalcallsperday" class="card">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				Total Calls PerDay
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#cpd_filter_modal">
+					<i class="fas fa-filter"></i>
+				</a>
+			</h6>
+			<div class="modal mb-filter-modal" id="cpd_filter_modal" tabindex="-1" role="dialog" aria-labelledby="cpd_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row">
+								<div class="col-sm-1">
+									<div class="form-group mb-2">
+										<label>Show</label>
+										<select class="custom-select custom-select-sm form-control form-control-sm" name="paginate_by" id="paginate_by_per_day">
+											<option value="10">10</option>
+											<option value="25">25</option>
+											<option value="50">50</option>
+											<option value="100">100</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search By:</label>
+										<!-- <div class="form-inline mt-1">
+											<div class="form-check mr-sm-3">
+												<label class="form-check-label">
+													<input type="radio" class="form-check-input" name="cpd_column_name" value="customer_cid" checked="">
+													Phone Number
+												<i class="input-helper"></i></label>
+											</div>
+											<div class="form-check mr-sm-3">
+												<label class="form-check-label">
+													<input type="radio" class="form-check-input" name="cpd_column_name" value="uniqueid">
+													Unique Id
+												<i class="input-helper"></i></label>
+											</div>
+										</div> -->
+										<select class="form-control form-control-sm" name="column_name" id="cpd_column_name">
+											<option value="">Select Column</option>
+											<option value="customer_cid">Phone Number</option>
+											<option value="uniqueid">Unique Id</option>
+											<option value="first_name">First Name</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search:</label>
+										<input type="text" class="form-control form-control-sm" id="cpd_search_by" placeholder="search" name="search_by">
+									</div>
+								</div>
+								<div class="col-sm-1 d-none d-sm-block">
+									<button type="button" class="btn btn-inverse-dark p-1 filter_contact mt-4" id="cpd_filter_contact">
+										<i class="fas fa-filter"></i>
+									</button>
+								</div>
+								<div class="col-sm-6">
+									<div class="text-center float-sm-right mt-3">
+										<div class="dropdown fetch_dispo_count" id="fetch_dispo_count_daily">
+											<button class="btn btn-inverse btn-sm btn-icon-text dropdown-toggle dispo_count_btn" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+												<i class="fas fa-comment-alt btn-icon-prepend"></i>
+												<span>All Dispositions</span>
+											</button>
+											<div class="dropdown-menu dropdown-menu-right" id="dispo_count_daily" aria-labelledby="dropdownMenuSizeButton3" x-placement="bottom-start">
+												<div class="dropdown-title">Filter by Disposition</div>
+												<div class="dropdown-content"></div>
+												<div class="dropdown-loading"><i class="fa fa-spinner fa-spin"></i></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer border-0 d-sm-none">
+							<button type="button" class="btn btn-outline-info" data-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary mb-btn-primary filter_contact" id="cpd_filter_contact">APPLY</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table id="agent-totalcallsperday-list" class="table display table-striped nowrap" style="width:100%"></table>
+			</div>
+			<div id="callperday_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+				</div>
+				<div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<input type="hidden" name="page" id="nextPage_number" value="1">
+	<input type="hidden" name="paginate_by" id="page_length" value="10">
+	<div id="contents-agent-totalcallsper-month" class="card">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				Total Calls PerMonth
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#cpm_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="cpm_filter_modal" tabindex="-1" role="dialog" aria-labelledby="cpm_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row">
+								<div class="col-sm-1">
+									<div class="form-group mb-2">
+										<label>Show</label>
+										<select class="custom-select custom-select-sm form-control form-control-sm" name="paginate_by" id="paginate_by_per_month">
+											<option value="10">10</option>
+											<option value="25">25</option>
+											<option value="50">50</option>
+											<option value="100">100</option>
+										</select>
+										
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search By:</label>
+										<!-- <div class="form-inline mt-1">
+											<div class="form-check mr-sm-3">
+												<label class="form-check-label">
+													<input type="radio" class="form-check-input" name="cpm_column_name" value="customer_cid" checked>
+													Phone Number
+												<i class="input-helper"></i></label>
+											</div>
+											<div class="form-check mr-sm-3">
+												<label class="form-check-label">
+													<input type="radio" class="form-check-input" name="cpm_column_name" value="uniqueid">
+													Unique Id
+												<i class="input-helper"></i></label>
+											</div>
+										</div> -->
+										<select class="form-control form-control-sm" name="column_name" id="cpm_column_name">
+											<option value="">Select Column</option>
+											<option value="customer_cid">Phone Number</option>
+											<option value="uniqueid">Unique Id</option>
+											<option value="first_name">First Name</option>
+										</select>
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Search:</label>
+										<input type="text" class="form-control form-control-sm" id="cpm_search_by" placeholder="search" name="search_by">
+									</div>
+								</div>
+								<div class="col-sm-2">
+									<div class="form-group mb-2">
+										<label>Filter by Date:</label>
+										<div id="date_filter_monthly" class="input-group date datepicker">
+											<input type="text" class="form-control form-control-sm" name="cpm_date" placeholder="YYYY-MM-DD">
+											<span class="input-group-addon input-group-append border-left">
+												<span class="far fa-calendar input-group-text p-1"></span>
+											</span>
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-1 d-none d-sm-block">
+									<button type="button" class="btn btn-inverse-dark p-1 filter_contact mt-4" id="cpm_filter_contact">
+										<i class="fas fa-filter"></i>
+									</button>
+								</div>
+								<div class="col-sm-4">
+									<div class="text-center float-sm-right mt-3">
+										<div class="dropdown fetch_dispo_count" id="fetch_dispo_count_monthly">
+											<button class="btn btn-inverse btn-sm btn-icon-text dropdown-toggle dispo_count_btn" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+												<i class="fas fa-comment-alt btn-icon-prepend"></i>
+												<span>All Dispositions</span>
+											</button>
+											<div class="dropdown-menu dropdown-menu-right" id="dispo_count_monthly" aria-labelledby="dropdownMenuSizeButton3" x-placement="bottom-start">
+												<div class="dropdown-title">Filter by Disposition</div>
+												<div class="dropdown-content"></div>
+												<div class="dropdown-loading"><i class="fa fa-spinner fa-spin"></i></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer border-0 d-sm-none">
+							<button type="button" class="btn btn-outline-info" data-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary mb-btn-primary filter_contact" id="cpm_filter_contact">APPLY</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table id="agent-monthly-calls" class="table display table-striped nowrap" style="width:100%">
+					<thead>
+						<tr>
+							<th data-data="customer_cid"  class="text-capitalize phone_number_field">PhoneNumber</th>
+							<th data-data="customer_full_name" class="text-capitalize">Customer Full Name</th>
+							<th data-data="location" class="text-capitalize">Location </th>
+							<th data-data="campaign_name" class="text-capitalize">campaign</th>
+							<th data-data="phonebook"  class="text-capitalize">PhoneBook</th>
+							<th data-data="call_duration"  class="text-capitalize">Talk Time</th>
+							<th data-data="cdrfeedback.primary_dispo" class="text-capitalize">Primary Dispo</th>
+							<th data-data="callmode"  class="text-capitalize">Call Mode</th>
+							<th data-data="created"  class="text-capitalize time_field_format">Time</th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+			<div id="callpermonth_vue" class="row pt-1">
+				<div class="col-md-5">
+					<div class="custome_pagination_info">
+						Showing ${start_index} to ${end_index} of ${total_records} entries
+					</div>
+				</div>
+				<div class="col-md-7">
+					<ul class="pagination separated d-flex justify-content-end ">
+						<li :class="[has_prev ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page-1)">Previous</a>
+						</li>
+						<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+						<template v-for="n in total_pages">
+							<li v-if="n==page" class="page-item active">
+								<a class="page-link">${n}</a>
+							</li>
+							<li v-else-if="n > page-3 && n < page+3">
+								<a class="page-link" @click="changePage(n)">${n}</a>
+							</li>
+						</template>
+						<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+						<li :class="[has_next ? 'page-item':'page-item disabled']">
+							<a class="page-link" @click="changePage(page+1)">Next</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="contents-agent-assigned-calls" class="card d-none">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				<span id="assigned_call_title">Total Assigned Calls</span>
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#ac_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="ac_filter_modal" tabindex="-1" role="dialog" aria-labelledby="ac_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row dataTables_wrapper dt-bootstrap4 m-0">
+								<div class="col-sm-6">
+									<div class="dataTables_length">
+										<label>Show
+											<select class="custom-select custom-select-sm form-control form-control-sm" name="paginate_by" id="paginate_by_asigned_calls">
+												<option value="10">10</option>
+												<option value="25">25</option>
+												<option value="50">50</option>
+												<option value="100">100</option>
+											</select>
+											entries
+										</label>
+									</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="dataTables_filter d-block d-md-inline-flex">
+										<label>Search By:
+											<select class="form-control form-control-sm d-inline-block ml-1" name="column_name" id="ac_column_name" style="width:auto;min-width: 130px;">
+												<option value="">Select Column</option>
+												<option value="numeric">Phone Number</option>
+												<option value="uniqueid">Unique Id</option>
+											</select>
+										</label>
+										<label>
+											<span class="d-sm-none">Search:</span>
+											<input type="text" class="form-control form-control-sm" id="ac_search_by" placeholder="search" name="search_by">
+											<button type="button" class="btn btn-inverse-dark p-1 filter_contact" id="ac_filter_contact">
+												<i class="fas fa-filter"></i>
+											</button>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer border-0 d-sm-none">
+							<button type="button" class="btn btn-outline-info" data-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary mb-btn-primary filter_contact" id="ac_filter_contact">APPLY</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table class="table display table-striped nowrap" id="show_assigned_contact_list" style="width: 100%;">
+					<thead>
+						<tr>
+							<th data-data='numeric'>Phone Number</th>
+							<th data-data='first_name'>First Name</th>
+							<th data-data='last_name'>Last Name</th>
+							<th data-data='uniqueid'>Unique Id</th>
+							<th data-data='campaign'>Campaign</th>
+							<th data-data='status'>Status</th>
+							<th data-data='disposition' class="dialled_table_column">Disposition</th>
+							<th data-data='verified_to' class="dialled_table_column">Assigned To</th>
+							<th class="contactList_action"></th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+			<div id="assigned_call_pagination_vue" class="pt-1">
+				<div class="custome_pagination_info">
+					Showing ${start_index} to ${end_index} of ${total_records} entries
+				</div>
+				<ul class="pagination separated d-flex justify-content-end ">
+					<li :class="[has_prev ? 'page-item':'page-item disabled']">
+						<a class="page-link" @click="changePage(page-1)">Previous</a>
+					</li>
+					<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+					<template v-for="n in total_pages">
+						<li v-if="n==page" class="page-item active">
+							<a class="page-link">${n}</a>
+						</li>
+						<li v-else-if="n > page-3 && n < page+3">
+							<a class="page-link" @click="changePage(n)">${n}</a>
+						</li>
+					</template>
+					<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+					<li :class="[has_next ? 'page-item':'page-item disabled']">
+						<a class="page-link" @click="changePage(page+1)">Next</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<div id="contents-lead-bucket" class="card d-none">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				<span id="lead_bucket_title">Lead Bucket</span>
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#lb_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="lb_filter_modal" tabindex="-1" role="dialog" aria-labelledby="lb_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row dataTables_wrapper dt-bootstrap4 m-0">
+								<div class="col-sm-6">
+									<div class="dataTables_length">
+										<label>Show
+											<select class="custom-select custom-select-sm form-control form-control-sm" name="paginate_by" id="paginate_by_lead_bucket">
+												<option value="10">10</option>
+												<option value="25">25</option>
+												<option value="50">50</option>
+												<option value="100">100</option>
+											</select>
+											entries
+										</label>
+									</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="dataTables_filter d-block d-md-inline-flex">
+										<label>Search By:
+											<select class="form-control form-control-sm d-inline-block ml-1" name="column_name" id="lb_column_name" style="width:auto;min-width: 130px;">
+												<option value="">Select Column</option>
+												<option value="numeric">Phone Number</option>
+												<option value="uniqueid">Unique Id</option>
+											</select>
+										</label>
+										<label>
+											<span class="d-sm-none">Search:</span>
+											<input type="text" class="form-control form-control-sm" id="lb_search_by" placeholder="search" name="search_by">
+											<button type="button" class="btn btn-inverse-dark p-1 filter_contact d-none d-sm-inline-block" id="lb_filter_contact">
+												<i class="fas fa-filter"></i>
+											</button>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer border-0 d-sm-none">
+							<button type="button" class="btn btn-outline-info" data-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary mb-btn-primary filter_contact" id="lb_filter_contact">APPLY</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table class="table display table-striped nowrap" id="lead_bucket_list" style="width: 100%;">
+					<thead>
+						<tr>
+							<th data-data='contact.numeric'>Phone Number</th>
+							<th data-data='contact.campaign'>Campaign</th>
+							<th data-data='contact.uniqueid'>Unique Id</th>
+							<th data-data='created_by'>Created By</th>
+							<th data-data='last_verified_by'>Last Verified BY</th>
+							<th data-data='contact.status'>Status</th>
+							<th data-data='contact.disposition'>Disposition</th>
+							<th class="contactList_action"></th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+			<div id="lead_bucket_pagination_vue" class="pt-1">
+				<div class="custome_pagination_info">
+					Showing ${start_index} to ${end_index} of ${total_records} entries
+				</div>
+				<ul class="pagination separated d-flex justify-content-end ">
+					<li :class="[has_prev ? 'page-item':'page-item disabled']">
+						<a class="page-link" @click="changePage(page-1)">Previous</a>
+					</li>
+					<li v-if="page-4 > 1" class="page-item"><a class="page-link" @click="changePage(page-5)">&hellip;</a></li>
+					<template v-for="n in total_pages">
+						<li v-if="n==page" class="page-item active">
+							<a class="page-link">${n}</a>
+						</li>
+						<li v-else-if="n > page-3 && n < page+3">
+							<a class="page-link" @click="changePage(n)">${n}</a>
+						</li>
+					</template>
+					<li v-if="total_pages > (page+4)" class="page-item"><a class="page-link" @click="changePage(page+5)">&hellip;</a></li>
+					<li :class="[has_next ? 'page-item':'page-item disabled']">
+						<a class="page-link" @click="changePage(page+1)">Next</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<div id="contents-agent-kycdocument" class="card">
+		<div class="card-body p-0 p-sm-3">
+			<h6 class="card-title mobile-tab-header mb-0 mb-sm-3">
+				<a id="crm-home" class="p-2 mr-2 d-sm-none"><i class="fas fa-arrow-left"></i></a>
+				<span id="assigned_call_title">Kyc Document</span>
+				<a class="d-sm-none float-right" data-toggle="modal" data-target="#ac_filter_modal"><i class="fas fa-filter"></i></a>
+			</h6>
+			<div class="modal mb-filter-modal" id="ac_filter_modal" tabindex="-1" role="dialog" aria-labelledby="ac_filter_modal" aria-hidden="true">
+				<div class="modal-dialog modal-lg mb-4 mb-sm-0" role="document">
+					<div class="modal-content border-0">
+						<div class="modal-header p-3 border-0 d-sm-none">
+							<h5 class="modal-title" id="">Filter Your Search</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body p-3 p-sm-0">
+							<div class="row dataTables_wrapper dt-bootstrap4 m-0">
+							<div class="col-lg-1 col-sm-6 ">
+									<div class="dataTables_filter d-block d-md-inline-flex" style="position: absolute;left: 12rem;z-index:1;"> 
+										<label>Search By:
+											<select class="form-control form-control-sm d-inline-block ml-1" name="column_name" id="kyc_column_name" style="width:auto;min-width: 130px;">
+												<option value="">Select Column</option>
+												<option value="phone_number">Phone Number</option>
+												<option value="first_name">First Name</option>
+												<option value="middle_name">Middle Name</option>
+												<option value="last_name">Last Name</option>
+											</select>
+										</label>
+										<label>
+											<span class="d-sm-none">Search:</span>
+											<input type="text" class="form-control form-control-sm" id="kyc_search_by" placeholder="search" name="search_by">
+											<button type="button" class="btn btn-inverse-dark p-1 filter_contact" id="kyc_filter_contact">
+												<i class="fas fa-filter"></i>
+											</button>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer border-0 d-sm-none">
+							<button type="button" class="btn btn-outline-info" data-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary mb-btn-primary filter_contact" id="cpd_filter_contact">APPLY</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table id="agent-totalkycdocuments-list" class="table display table-striped nowrap" style="width:100%"></table>
+			</div>
+		</div>
+
+  <div class="modal fade" id="documents-tab-content-1" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+	  <div class="modal-content">
+		<div class="modal-header">
+		  <h5 class="modal-title" id="exampleModalLongTitle">KYC Document</h5>
+		  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+		  </button>
+		</div>
+		<div class="modal-body">
+			<div class="col-md-12">
+				<fieldset id="kycdocuments_vue_1">
+					<div class="row portfolio-grid">
+						<template v-if="documents.length > 0"> 
+							<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12" v-for="(val,key) in documents">
+							<figcaption>
+								<h4>${ val.id_name }</h4>
+								<p><strong>Doc Number :</strong> ${ val.id_number }</p>
+							</figcaption>
+							<figure  style="background:none">
+								<img v-if="val.image_content" :src="val.image_content" alt="image" v-on:click=opendocument(val.image_content)>
+								<img v-else src="null" alt="Documents Not uploaded by customer">
+							</figure>
+						</div>
+						</template>
+					</div>
+					<template v-else-if="doc_is_fetching" class="text-center">
+						<p colspan="4"><i class="fa fa-spinner fa-spin fa-2x text-dark"></i> Fetching available Documents...</p>
+					</template>
+					<template v-else-if="doc_is_error" class="text-center">
+						<p colspan="4">Can find the documents can you try again after sometime ...</p>
+					</template>
+					<template v-else class="text-center">
+						<p colspan="4">OOPS!!! Something wrong ...</p>
+					</template>
+				</fieldset>
+			</div>
+		</div>
+	  </div>
+	</div>
+  </div>
+	</div>
+</div>
+<div id="model-popup-div" class="modal fade" data-backdrop="static" tabindex="-1" aria-hidden="true" data-keyboard="false">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="ModalLabel">
+					<i class="fa fa-info-circle" title="A step by step wizard that allows you to create switch details."></i>
+					<b>Transfer Call</b>
+				</h5>
+				<button type="button" id="close-popup"  class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div role="application" class="wizard clearfix" id="">
+					<div class="clearfix" id="transfer-type-select-div">
+						<div class="form-group row">
+							<label for="status" name="status" class="col-form-label col-4">Transfer Type:</label>
+							<div class="col-8">
+								<select class="form-control" id="transfer-type-select">
+									<option value=""> select tranfer type </option>
+									<option value="attr-transfer">Attr Transfer</option>
+									<option value="three-way-calling">3-Way Calling</option>
+								</select>
+							</div>
+						</div>
+					</div>
+					<div class="clearfix  d-none" id="radio-btn-div">
+						<div class="form-group row">
+							<div class="col-4 d-none" id="internal_div">
+								<div class="form-check form-check-inline">
+									<label class="form-check-label">
+										<input class="form-check-input" type="radio" name="my-radio" id="internal-radio" value="internal"> Internal
+										<i class="input-helper"></i>
+									</label>
+								</div>
+							</div>
+							<div class="col-4 d-none" id="external_div">
+								<div class="form-check form-check-inline">
+									<label class="form-check-label">
+										<input class="form-check-input" type="radio" name="my-radio" id="external-radio" value="external"> External
+										<i class="input-helper"></i>
+									</label>
+								</div>
+							</div>
+							<div class="col-4 d-none" id="queue_div">
+								<div class="form-check form-check-inline">
+									<label class="form-check-label">
+										<input class="form-check-input" type="radio" name="my-radio" id="queue-radio" value="queue">Queue
+										<i class="input-helper"></i>
+									</label>
+								</div>
+							</div>                            
+						</div>
+					</div>
+					<div class="clearfix sec-div d-none" id="internal-sec-div">
+						<div class="form-group row">
+							<div class="col-8">
+								<select class="form-control" id="agents-type-select">
+									<option value="">SELECT AGENT</option>
+								</select>
+							</div>
+							 <div class="col-4">
+								<button type="button" value="dial" id="internal-dial-btn" class="btn btn-inverse-success btn-icon-text" >
+									<i class="fa fa fa-phone fa-rotate-90 btn-icon-prepend"></i>
+									Dial 
+								</button>
+							</div>
+						</div>
+					</div>
+					<div class="clearfix sec-div d-none" id="queue-sec-div">
+						<div class="form-group row">
+							<div class="col-8">
+								<select class="form-control" id="queue-type-select">
+									<option value="">select queue </option>
+									{#% for camp in user.active_campaign %#}
+										<option value="{{camp.id}}" data-server="{{camp.switch__ip_address}}">{{camp.name}}</option>
+									{#% endfor %#}
+								</select>
+							</div>
+							 <div class="col-4">
+								<button type="button" value="dial" id="queue-dial-btn" class="btn btn-inverse-success btn-icon-text">
+									<i class="fa fa fa-phone fa-rotate-90 btn-icon-prepend"></i>
+									Dial
+								</button>
+							</div>
+						</div>
+					</div>
+					<div class="clearfix sec-div d-none" id="external-sec-div">
+						<div class="form-group row">
+							<div class="col-8">
+								<input type="text" class="form-control" id="dial-number-text"  placeholder="Dial Number" onkeypress="return isNumber(event)" required/>  
+							</div>
+							 <div class="col-4">
+								<button type="button" value="dial" id="external-dial-btn" class="btn btn-inverse-success btn-icon-text" >
+									<i class="fa fa fa-phone fa-rotate-90 btn-icon-prepend"></i>
+									Dial
+								</button>
+								<div class="text-center tc-loader-div" style="display: none;">
+									<h5 class="text-success mt-2">Dialling
+										<span class="dot-opacity-loader transfer-call-loader">
+											<span></span>
+											<span></span>
+											<span></span>
+										</span>
+									</h5>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="clearfix d-none" id="hang-transfer-btn-div">
+						<div class="form-group row">
+							<div class="col-6">
+							   <button type="button" name="Hangup" id="attr-hangup-btn" value="Hangup" class="btn btn-inverse-danger w-100"> Hangup</button>
+							</div>
+							 <div class="col-6">
+								<button type="button" value="Transfer" id="transfer-btn" class="btn btn-inverse-warning w-100 d-none" > <span > </span> Transfer </button>
+							</div>
+						</div>
+					</div>
+					<div class="clearfix d-none" id="hang-merge-btn-div">
+						<div class="form-group row">
+							<div class="col-3">
+							   <button type="button" name="Hangup" id="3way-hangup-btn" value="Hangup" class="btn btn-inverse-danger "> Hangup</button>
+							</div>
+							 <div class="col-3">
+								<button type="button" value="Transfer" id="merge-btn" class="btn btn-inverse-warning" > <span > </span> Merge </button>
+							</div>
+						</div>
+					</div>
+					<div class="d-none" id="transfer-error">
+						<div class="alert alert-danger" role="alert">
+						</div>
+					</div>
+					<div class="d-none">
+						<audio id="Transfer-Ring-Back">
+							<source src="{% static 'audio_files/Phone_Ringing_8x.mp3' %}" type="audio/mpeg">
+						</audio>
+						<audio id="autodial_agent_beep">
+							<source src="{% static 'audio_files/beep.mp3' %}" type="audio/mpeg">
+						</audio>						
+						<audio id="Transfer-Busy">
+							<source src="{% static 'audio_files/Busy.mp3' %}" type="audio/mpeg">
+						</audio>
+						<audio id="Transfer-NotAnswer">
+							<source src="{% static 'audio_files/NotAnswer.mp3' %}" type="audio/mpeg">
+						</audio>
+					</div>
+					<div class="d-none" id="devp-alert">
+						<div class="alert alert-info" role="alert">
+							This Feature is in under development.
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<template id="primary_dispo_btn">
+	<button type="button" class="btn btn-outline-dark btn-fw w-100 font-weight-bold dispo-btn" :id="dispo_name" :title="dispo_name" v-on:click="$emit('primary-select')" @mouseover="dispo_hover" :style="btn_style" @mouseleave="dipo_leave" style="overflow:hidden; text-overflow:ellipsis;">${dispo_name}</button>
+</template>
+<template id="sub_dispo_template">
+	<div class="col-sm-12">
+		<div v-if="sub_dispo.type !='multifield' && sub_dispo.type !=''" class="row">
+			<label :for="sub_dispo.name|replace" class="col-sm-4 col-form-label text-capitalize">${sub_dispo.name}:</label>
+			<div class="col-sm-8">
+				<!-- input integer -->
+				<input v-if="sub_dispo.type == 'integer'" type="text" class="form-control crm-form-control" onkeypress="return isNumber(event)" :maxlength="sub_dispo.size" v-model.number="dispo_data" :data-validation="[sub_dispo.is_required ? 'required':'']" :name="sub_dispo.db_name">
+				<!-- input text -->
+				<input v-else-if="sub_dispo.type == 'text'" class="crm-form-control" type="text" :name="sub_dispo.db_name" :id="sub_dispo.name|replace" v-model="dispo_data" :data-validation="[sub_dispo.is_required ? 'required':'']">
+				<!-- textarea -->
+				<textarea v-else-if="sub_dispo.type == 'textarea'" class="form-control" :id="sub_dispo.name|replace" :name="sub_dispo.db_name" v-model="dispo_data" :data-validation="[sub_dispo.is_required ? 'required':'']" rows="4" style="height: unset;" :placeholder="sub_dispo.name"></textarea>
+				<!-- radio group -->
+				<div v-else-if="sub_dispo.type == 'radio'" class="form-inline">
+					<div class="form-check mr-sm-3" v-for="option,index in sub_dispo.children">
+						<label :for="option.name|replace" class="form-check-label">
+							<input class="form-check-input" type="radio" :value="option.name" :data-validation="[sub_dispo.is_required ? 'required':'']" v-model="select_radio" :name="sub_dispo.db_name">${option.name}<i class="input-helper"></i>
+						</label>
+					</div>
+				</div>
+				<!-- dropdown -->
+				<select v-else-if="sub_dispo.type == 'dropdown'" :id="sub_dispo.name|replace" class="crm-form-control" :name="sub_dispo.db_name" v-model="select_dropdown" :data-validation="[sub_dispo.is_required ? 'required':'']">
+					<option value="" selected disabled>Select ${sub_dispo.name}</option>
+					<option v-for="option, index in sub_dispo.children" :value="option.name">${option.name}</option>
+				</select>
+				<!-- datepicker -->
+				<datepicker v-else-if="sub_dispo.type == 'datefield'" :value="dispo_data" v-on:set-date="dispo_data = $event" :is-required="sub_dispo.is_required" :name="sub_dispo.db_name" :previous_disabled="sub_dispo.previous_disabled"></datepicker>
+				<!-- timefield -->
+				<timepicker v-else-if="sub_dispo.type == 'timefield'" :id="sub_dispo.name|replace" :target="'#'+sub_dispo.name|replace" :value="dispo_data" :name="sub_dispo.db_name" v-on:set-time="dispo_data = $event" :is-required="sub_dispo.is_required"></timepicker>
+				<!-- datetimefield -->
+				<datetimepicker v-else-if="sub_dispo.type == 'datetimefield' && !sub_dispo.is_callback" :id="sub_dispo.name|replace" :target="'#'+sub_dispo.name|replace" :value="dispo_data" :name="sub_dispo.db_name" :is-required="sub_dispo.is_required" v-on:set-datetime="dispo_data = $event" :previous_disabled="sub_dispo.previous_disabled"></datetimepicker>
+				<!-- callback datetimefield -->
+				<cb-datetimepicker v-else-if="sub_dispo.type == 'datetimefield' && sub_dispo.is_callback" :id="sub_dispo.name" name="default_schedule_time" :target="'#'+sub_dispo.name" :value="dispo_data" v-on:set-datetime="dispo_data = $event" :db_name='sub_dispo.db_name' :is_required="sub_dispo.is_required"></cb-datetimepicker>
+				<!-- multiple checkbox -->
+				<div v-else-if="sub_dispo.type == 'multiselectcheckbox'" class="form-inline">
+				  <div class="form-check mr-sm-3" v-for="option,index in sub_dispo.children">
+					<label class="form-check-label">
+					  <input class="form-check-input" type="checkbox" :value="option.name" :data-validation="[sub_dispo.is_required ? 'required':'']" v-model="select_multicheckbox" :name="sub_dispo.db_name">
+					  ${option.name}<i class="input-helper"></i>
+					</label>
+				  </div>
+				</div>
+				<!-- multiselect dropdown -->
+				<select2 v-else-if="sub_dispo.type == 'multiselect'" :options="multiselectOptions(sub_dispo.children)" class="form-control crm-form-control" multiple="true" :data-validation="[sub_dispo.is_required ? 'required':'']" v-model="select_multicheckbox" :name="sub_dispo.db_name"></select2>
+				<!-- single checkbox -->
+				<div v-else-if="sub_dispo.type == 'checkbox'" class="form-check">
+					<label class="form-check-label">
+						<input type="checkbox" class="form-check-input" v-model="select_checkbox" :data-validation="[sub_dispo.is_required ? 'required':'']" :name="sub_dispo.db_name">
+						<i class="input-helper" ></i>
+					</label>
+				</div>
+			</div>
+		</div>
+		<div v-if="sub_dispo.type =='dropdown' || sub_dispo.type =='radio'" class="row">
+			<disposition-component v-for="child,index in sub_dispo.children"
+								v-if="child.name == selected_children"
+								:sub_dispo="child"
+								:key="index"
+								:dispo_data="dispo_data[child.name]"
+								@child-input ="dispo_data[child.name] = $event"
+			></disposition-component>
+		</div>
+		<div v-else-if="sub_dispo.type =='checkbox'" class="row">
+			<disposition-component v-if="selected_children" 
+									v-for="child,index in sub_dispo.children"
+									:sub_dispo="child"
+									:key="index"
+									:dispo_data="dispo_data[child.name]"
+									@child-input ="dispo_data[child.name] = $event"
+			></disposition-component>
+		</div>
+		<div v-else-if="sub_dispo.type =='multiselect' || sub_dispo.type =='multiselectcheckbox'" class="row">
+			<disposition-component  v-for="child,index in sub_dispo.children"
+									v-if="itemsContains(child.name,multi_selected_children)"
+									:sub_dispo="child"
+									:key="index"
+									:dispo_data="dispo_data[child.name]"
+									@child-input ="dispo_data[child.name] = $event"
+			></disposition-component>
+		</div>
+		<div v-else class="row">
+			<disposition-component v-if="sub_dispo.children.length != 0" 
+									v-for="child,index in sub_dispo.children"
+									:sub_dispo="child"
+									:key="index"
+									:dispo_data="dispo_data[child.name]"
+									@child-input ="dispo_data[child.name] = $event"
+			></disposition-component>
+		</div>
+	</div>
+</template>
+<div class="modal fade" id="contact_detail_modal" tabindex="-1" role="dialog" aria-labelledby="contact_detail_modal" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content" style="border-radius:0px">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel-2">Customer Information</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="accordion accordion-solid-header" id="crm_data_template">
+					<div class="card">
+						<div class="card-header p-0" role="tab" id="heading-1">
+							<h6 class="mb-0">
+								<a data-toggle="collapse" href="#basic-info-collapse" aria-expanded="true" aria-controls="basic-info-collapse" class="collapsed px-3 py-2">
+									Basic Information
+								</a>
+							</h6>
+						</div>
+						<div id="basic-info-collapse" class="collapse show" role="tabpanel" aria-labelledby="heading-1" data-parent="#contact-detail-accordion" style="">
+							<div class="card-body">
+								<div class="row">
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">Phone Number
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${crm_data.numeric}</label>
+										</div>
+									</div>
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">Alt Number
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${crm_data.alt_numeric}</label>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">First Name
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${crm_data.first_name}</label>
+										</div>
+									</div>
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">Last Name
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${crm_data.last_name}</label>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">Email
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${crm_data.email}</label>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div v-for="section_value,section_name in crm_data.contact_info" class="card">
+						<div class="card-header p-0" role="tab" id="heading-1">
+							<h6 class="mb-0">
+								<a data-toggle="collapse" :href="'#collapse-'+section_name" aria-expanded="false" :aria-controls="'collapse-'+section_name" class="collapsed px-3 py-2">
+									${section_name}
+								</a>
+							</h6>
+						</div>
+						<div :id="'collapse-'+section_name" class="collapse" role="tabpanel" :aria-labelledby="'heading-'+section_name" data-parent="#contact-detail-accordion" style="">
+							<div class="card-body">
+								<div  v-for="field_value, field_name in section_value" class="row">
+									<div class="col-6">
+										<div class="form-group row mb-0">
+											<label class="text-capitalize col-sm-4 col-form-label mb-0">${ field_name }
+											<span class="float-sm-right">:</span></label>
+											<label class="font-weight-bold col-sm-8 col-form-label mb-0 pt-0 pt-sm-3">${ field_value }</label>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>				
+			</div>
+			<div class="modal-footer makecall_footer_div d-none">
+				<button type="button" class="btn btn-success contact-make-call">Make Call</button>
+				<button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="lead_call_history_modal" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content" style="border-radius:0px">
+			<div class="modal-header py-3">
+				<h5 class="modal-title" id="exampleModalLabel-2">Call History:</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body px-3 pt-2">
+				<table id="lead-call-history-table" class="table display table-striped nowrap" cellspacing="0" style="width:100%">
+					<thead>
+						<tr>
+							<th class="action-field"></th>
+							<th data-data="customer_cid">Phone Number</th>
+							<th data-data="user">Agent</th>
+							<th data-data="campaign_name">Campaign</th>
+							<th data-data="uniqueid">Unique Id</th>
+							<th data-data="callflow">Callflow</th>
+							<th data-data="diallereventlog.init_time">Calling Time</th>
+							<th data-data="diallereventlog.hangup_time">Hangup Time</th>
+							<th data-data="diallereventlog.call_duration">Call Duration</th>
+							<th data-data="dialed_status">Dialed Status</th>
+							<th data-data="primary_dispo">Disposition</th>
+							<th data-data="comment" class="comment-field">Comment</th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="recordingPlay_modal" tabindex="-1" role="dialog" aria-labelledby="play_recording" aria-hidden="true">
+	<div class="modal-dialog h-100 d-flex flex-column justify-content-center my-0" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="play_recording">Call Recording Playback</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body text-center">
+				<span style="color: Tomato;">
+					<i class="fas fa-music fa-3x "></i>
+				</span>
+				<div class="row">
+					<div class="col-12">
+						<strong>Number : </strong>
+						<span id="rp_cust_number"></span>
+					</div>
+					<div class="col-12">
+						<strong>Agent : </strong>
+						<span id="rp_agent"></span>
+					</div>
+					<div class="col-12">
+						<strong>Campaign : </strong>
+						<span id="rp_campaign"></span>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer p-0 border-top-0">
+				<audio class="" preload="auto" id="history_audio_div" src="" style="width: 100%" controls></audio>
+				<!-- <div id="audio_div" class="w-100">
+					<audio class="d-none" preload="auto" controls>
+					</audio>
+				</div> -->
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="inbound_contact_detail_modal" tabindex="-1" role="dialog" aria-labelledby="contact_detail_modal" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content" style="border-radius:0px">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel-2">Customer Information</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="accordion accordion-solid-header" id="contact-detail-accordion">
+					<div class="card">
+						<div class="card-header p-0" role="tab" id="heading-1">
+							<h6 class="mb-0">
+								<a data-toggle="collapse" href="#basic-info-collapse" aria-expanded="true" aria-controls="basic-info-collapse" class="collapsed px-3 py-2">
+									Basic Information
+								</a>
+							</h6>
+						</div>
+						<div id="basic-info-collapse" class="collapse show" role="tabpanel" aria-labelledby="heading-1" data-parent="#contact-detail-accordion" style="">
+							<div class="card-body">
+								<div class="row">
+									<div class="col-3">
+										<label>Customer Name</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.customer_name}</label>
+									</div>
+									<div class="col-3">
+										<label>Mobile No</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.mobile_no}</label>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-3">
+										<label>Loan_No</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.loan_no}</label>
+									</div>
+									<div class="col-3">
+										<label>Loan Amount</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.loan_amt}</label>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-3">
+										<label>Permanent_Address</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.permanent_address}</label>
+									</div>
+									<div class="col-3">
+										<label>Total_Outstanding</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.total_outstanding}</label>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-3">
+										<label>EMI Amount</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.emi_amt}</label>
+									</div>
+									<div class="col-3">
+										<label>Last EMI Paid Date</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.last_emi_paid_date}</label>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-3">
+										<label>Loan_Status</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.loan_status}</label>
+									</div>
+									<div class="col-3">
+										<label>Charges</label>
+										<span class="float-right">:</span>
+									</div>
+									<div class="col-3">
+										<label class="font-weight-bold">${cust_detail.charges}</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer makecall_footer_div d-none">
+				<button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="appoinment_aval_modal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+	<div class="modal-dialog modal-cmd">
+		<div class="modal-content" id="agent_appoinment_vue">
+			<div class="modal-header">
+				<h5 class="modal-title">Appraisers/valuators Availiblity</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" :disabled="selected_agents.length > 0">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body pt-3">
+				<div class="row">
+					<div class="col-md-6">
+						<label for="appointment_date_on_md" class="text-muted">Appointment Date: </label>
+						<label id="appointment_date_on_md" class="font-weight-bold text-dark">${appointment_date}</label>
+					</div>
+					<div class="col-md-6">
+						<label for="pincode_on_md"  class="text-muted">Pincode: </label>
+						<label id="pincode_on_md" class="font-weight-bold text-dark">${pincode}</label>
+					</div>
+				</div>
+				<div class="table-responsive" style="height: 300px">
+					<table class="table display nowrap table-hover dataTable" cellspacing="0" style="width:100%">
+						<thead>
+							<tr>
+								<th scope="col">Agent ID</th>
+								<th scope="col">Agent Name</th>
+								<!-- <th scope="col">Agent Dealing Amount</th> -->
+								<th scope="col">Agent Distance</th>
+								<th scope="col">Agent Branch</th>
+								<th scope="col">Agent Role</th>
+								<th scope="col"></th>
+							</tr>
+						</thead>
+						<tbody>
+							<template v-if="agent_details.length > 0">
+								<tr  v-for="(agent_detail, index) in agent_details" :key="index">
+									<td>${ agent_detail.AGENT_ID }</td>
+									<td>${ agent_detail.AGENT_NAME }</td>
+									<!-- <td v-html="agent_detail.AGENT_DEALING_AMOUNT"></td> -->
+									<td>${ agent_detail.AGENT_DISTANCE}</td>
+									<td>${ agent_detail.BRANCH}</td>
+									<td>${ agent_detail.ROLENAME}</td>
+									<td>
+										<div v-if="agent_detail.status && Object.keys(agent_detail.status).length > 0" class="">
+											<span  :class="[agent_detail.status.STATUS == 'S' ? 'text-success':'text-danger','font-weight-bold']">${ agent_detail.status.MESSAGE }</span>
+											<button v-if="agent_detail.status.STATUS == 'S'" class="btn btn-sm btn-link text-danger" @click='unbookAppointment(index, agent_detail.AGENT_ID)' :disabled="current_unbooking_agent == agent_detail.AGENT_ID"><i :class="current_unbooking_agent == agent_detail.AGENT_ID ? btn_icons['loading_icon'] : btn_icons['unblock_icon']" style="font-size: 1rem;"></i></button>
+										</div>
+										<button v-else class="btn btn-sm btn-link" @click="bookAppointment(index, agent_detail.AGENT_ID)" :disabled="current_booking_agent == agent_detail.AGENT_ID"><i :class="current_booking_agent == agent_detail.AGENT_ID ? btn_icons['loading_icon'] : btn_icons['initial_icon']"></i></button>
+									</td>
+								</tr>
+							</template>
+							<tr v-else-if="is_fetching" class="text-center">
+								<td colspan="4"><i class="fa fa-spinner fa-spin fa-2x text-dark"></i> Fetching available Appraisers/valuators...</td>
+							</tr>
+							<tr v-else-if="is_error" class="text-center">
+								<td colspan="4">Can not fetch Appraisers/valuators at the moment please try again...</td>
+							</tr>
+							<tr v-else class="text-center">
+								<td colspan="4">No Appraisers/valuators are available for selected date...</td>
+							</tr>
+						</tbody>
+					</table>
+					
+				</div>
+			</div>
+			<div class="modal-footer" style="justify-content: space-between;">
+				<div style="width: 50%">
+					<div v-if="is_book_error" class="alert alert-danger mb-0" role="alert">${book_error}</div>
+				</div>
+				<div>
+					<button type="button" class="btn btn-default btn-icon-text" data-dismiss="modal" :disabled="selected_agents.length > 0"><i class="fas fa-arrow-left btn-icon-prepend"></i>Cancel</button>
+					<button type="button" class="btn btn-success btn-icon-text" @click="udpateAppointment" ><i class="fas fa-check-square"></i> Submit</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="mapmyindia_modal" class="modal fade" role="dialog" data-keyboard=false data-backdrop="static">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content" id="mapmyindia_vue">
+			<div class="modal-header">
+				<h5 class="modal-title">Select Location for eLoc</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" >
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body pt-3">
+				<div class="row">
+					<div id="map"> </div>
+					 <input  type="text" id="auto" name="auto" class="search-outer form-control as-input" placeholder="Search places or eLoc's..." required="" spellcheck="false" >
+				</div>
+			</div>
+			<div class="modal-footer" style="justify-content: space-between;">
+
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock agent-content %}
+{% block agent-extra-js %}
+<script type="text/javascript">
+	var extension           = "{{ user.extension }}"
+	var user_pass           = "{{ user.device_pass }}"
+	var user_name           = "{{ user.username }}"
+	var call_type 			= "{{user.call_type}}"
+	var user_role			= "{{ user.access_level }}"
+	var sip_identity        = '';
+	var websocket_proxy_url = '';
+	var domain_ip           = '';
+	var outbound_proxy_url  = '';
+	var session_details     = {};
+	var dummy_session_details = {};
+	var campaign_name       = '';
+	var callback_type       = '';
+	var is_callback			= false;
+	var is_abandoned_call 	= false;
+	var inboundCall_picked  = false;
+	var transferCall_picked = false;
+	var user_caller_id 		= "{{ user.caller_id }}"
+	var server_ip 			= "{{server_ip}}"
+	var user_id 			= "{{ user.id }}"
+	sessionStorage.setItem("map_access_token",'{{mapmyindia_access_token}}')
+	var non_agent_user 		= {% if non_agent_user or request.user.is_superuser  %} true {% else %} false {% endif %}
+</script>
+{% if user.call_type == 'webrtc' %}
+<script src="{% static 'webrtc/sip.js' %}"></script>
+<script src="{% static 'webrtc/sip_session.js' %}"></script>
+{% endif %}
+<script src="{% static 'js/audioplayer.js'%}"></script>
+<script src="{% static 'js/agent_datatable.js'%}"></script>
+<script type="text/javascript" src="{% static 'js/lodash.min.js' %}"></script>
+<script src="{% static 'js/ez.countimer.min.js' %}"></script>
+<script src="{% static 'js/timer.js' %}"></script>
+<!-- all the vue.js file related to agent screen -->
+<script src="{% static '/js/agent_vue.js' %}"></script>
+<!-- vue.js files end -->
+<script src="{% static '/js/toast_msg.js' %}"></script>
+<script src="{% static 'js/dialer/node_socket.js' %}"></script>
+<script src="{% static '/js/custom.js' %}"></script>
+<script src="{% static '/js/duplicate_tab.js' %}"></script>
+<script src="{% static 'js/encrypt.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/base64.js' %}"></script>
+<script type="text/javascript">
+	close_agent_sidebar()
+	$('.frame_class').css('height', $(window).height()+'px');
+	var contacts_list =$("#contacts-list")
+	var firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+	var lastDay = new Date();
+	$('#date_filter_monthly').datepicker({
+		startDate:firstDay,
+		endDate: '+0d',
+		todayHighlight: true,
+		format: 'yyyy-mm-dd',
+		orientation: 'bottom auto',
+		autoclose: true,
+		changeMonth: false,
+		changeYear: false,
+		stepMonths: false,
+	});
+	$( document ).ready(function() {
+		if(agent_info_vue.isMobile()){
+			agent_info_vue.$mount('#agent_mobile_info_vue')
+			call_info_vue.$mount('#mb_call_statusinfo')
+			$('#btnLogMeIn').appendTo('#mb_landing_page .card-body')
+			$('#btnLogMeOut').appendTo('.mb-nav .mb-logout-btn-div').addClass('d-none')
+			$('#MDPhonENumbeR, #manual-dial-now').appendTo('.mb-manual-dial-div')
+			$('#call-loader').appendTo('.mb-flexy-btn-div')
+			$('#flexy-btn-div').appendTo('.mb-flexy-btn-div')
+			$('.all_timer h5').removeClass('badge-pill badge-info badge-primary badge-warning badge-success')
+			$('.profile-dropdown a').each(function(){
+				var li = document.createElement("li");
+				$(this).removeClass('dropdown-item btn').addClass('nav-link').appendTo(li)
+				$(li).addClass('nav-item').appendTo('#left_sidebar ul')
+			})
+			$('.mb-filter-modal').addClass('fade')
+			$('[data-toggle="popover"]').popover({
+				html: true,
+				content: $('#mb-popper-content'),
+				placement: 'auto',
+			}).on('show.bs.popover', function() {
+				$('#mb-popper-content').removeClass('d-none')
+				if(call_info_vue.alt_numeric.length == 0){
+					call_info_vue.addAlternateNumber(0)
+				}
+			}).on('hide.bs.popover', function() {
+				call_info_vue.alt_numeric = call_info_vue.alt_numeric.filter(item => item.alt_value != '')
+			})
+			$('#crm-agent-logout').appendTo('.mb-logout-btn-div')
+		}else{
+			agent_info_vue.$mount('#agent_info_vue')
+			call_info_vue.$mount('#call_statusinfo')
+			$('#right-sidebar').addClass('open')
+			$('body').removeClass('agent-sidebar-hidden')
+			$('.mb-page-header').removeClass('d-none')
+			$('[data-toggle="popover"]').popover({
+				html: true,
+				content: $('#popper-content')
+			}).on('show.bs.popover', function() {
+				$('#popper-content').removeClass('d-none')
+				if(call_info_vue.alt_numeric.length == 0){
+					call_info_vue.addAlternateNumber(0)
+				}
+			}).on('hide.bs.popover', function() {
+				call_info_vue.alt_numeric = call_info_vue.alt_numeric.filter(item => item.alt_value != '')
+			})
+		}
+		$('#SecondsDISP, #display_hold_timer').countimer({
+			autoStart:false,
+		});
+		$("#appointment-time").datetimepicker({
+			format: 'HH:mm',
+			useCurrent : 'day',
+			pickerPosition: "top-left",
+		});
+		getAgentLivedata();
+		getBroadCastMessages();
+		showbreaksonagentsdashboard()
+		var notify = setInterval(getAgentLivedata, 5000);
+
+		$('#agent-monthly-calls').on( 'length.dt', function ( e, settings, len ) {
+			$('#page_length').val(len)
+			CallPerMonth(calls_url)
+		});
+	})
+	var list_of_contacts_table = $('#show_contact_list').DataTable({
+		"searching": true,
+		"processing":true,
+		"deferRender": true,
+		scrollX:true,
+		 aoColumnDefs: [
+		   {
+				"aTargets": 'contactList_action',
+				"mData": "",
+				"mRender": function (data, type,row,full) {
+					if(row['status'] == "Locked"){
+						return  `<button type='button' style='pointer-events: none;' class='btn btn-inverse-info view-detail disabled' id=${row['id']} phone_number=${row['numeric']} title='View'> <i class='fas fa-eye  disabled'></i> </button><button type='button' style='pointer-events: none;' class='btn btn-inverse-primary contact-set-call disabled' contact_id=${row['id']} phone_number=${row['numeric']} title='Select Contact'><i class='fa fa-check  disabled'></i> </button>`;
+					}
+					return  `<button type='button' class='btn btn-inverse-info view-detail' id=${row['id']} phone_number=${row['numeric']} title='View'> <i class='fas fa-eye'></i> </button><button type='button' class='btn btn-inverse-primary contact-set-call' contact_id=${row['id']} phone_number=${row['numeric']} title='Select Contact'><i class='fa fa-check'></i></button>`;
+				}
+			},
+			{
+				"aTargets": 'alternate-number-list',
+				"mRender": function (data, type,row,full) {
+					return '<div style="min-width:110px; max-width:150px; overflow:hidden; text-overflow: ellipsis;">'
+						+Object.values(data).toString()+'</div>'
+				}
+			},
+		 ],
+	})
+	var list_of_inbound_contacts_table = $('#show_inbound_contact_list').DataTable({
+			"searching": true,
+			"processing":true,
+			"deferRender": true,
+			aoColumnDefs: [
+				{
+					"aTargets": 'contactList_action',
+					"mData": "",
+					"mRender": function (data, type,row,full) {
+						return  "<button type='button' class='btn btn-inverse-info p-2 inbound-view-detail' id=\""+full.row+"\" phone_number=\""+row['mobile_no']+"\" title='View'> <i class='fas fa-eye '></i> </button>      <button type='button' class='btn btn-inverse-primary p-2 inbound-contact-set-call' row_id=\""+full.row	+"\" phone_number=\""+row['mobile_no']+"\" title='Select Contact'> <i class='fa fa-check '></i> </button>";	
+						if(callmode == "inbound" || callmode == "inbound-blended"){
+						}	
+					}
+				}
+			],
+	})
+	$('body').on('click', function (e) {
+		if ($(e.target).data('toggle') !== 'popover'
+		&& $(e.target).parents('[data-toggle="popover"]').length === 0
+		&& $(e.target).parents('.popover.fade').length === 0
+		&& !$(e.target).hasClass('remove-alternate') && !$(e.target).hasClass('add-alternate')) { 
+			$('[data-toggle="popover"]').popover('hide');
+		}
+	})
+	var inbound_cust_detail_vue = new Vue({
+		el: '#inbound_contact_detail_modal',
+		delimiters: ['${', '}'],
+		data:{
+			cust_detail:{}
+		},
+	})
+         
+
+</script>
+<script defer>
+          var map = new MapmyIndia.Map('map', {center: [28.09, 78.3], zoom: 5, search: false});
+          /*Search plugin initialization*/
+            var optional_config={
+                location:[28.61, 77.23],
+               /* pod:'City',
+                bridge:true,
+                tokenizeAddress:true,*
+                filter:'cop:9QGXAM',
+                distance:true,
+                width:300,
+                height:300*/
+            };
+            
+            new MapmyIndia.search(document.getElementById("auto"),optional_config,callback);
+            
+            /*CALL for fix text - LIKE THIS
+             * 
+             new MapmyIndia.search("agra",optional_config,callback);
+             * 
+             * */
+
+            var marker;
+            function callback(data) { 
+                if(data)
+                {
+                    var dt=data[0];
+                    if(!dt) return false;
+                    console.log(dt.eLoc,"====================")           
+                    crm_field_vue.field_data['other_details']['filler1'] = dt.eLoc
+                    crm_field_vue.field_data['address_details']['mmi_address'] = document.getElementById('auto').value
+                    var eloc=dt.eLoc;
+                    var place=dt.placeName+(dt.placeAddress?", "+dt.placeAddress:"");
+                    /*Use elocMarker Plugin to add marker*/
+                    if(marker) marker.remove();
+                    marker=new MapmyIndia.elocMarker({map:map,eloc:eloc,popupHtml:place,popupOptions:{openPopup:true}}).fitbounds();
+                }
+              }
+	</script>
+{% endblock agent-extra-js %}
