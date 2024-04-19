@@ -1704,7 +1704,7 @@ def process_datetime_columns(df):
 			df[col] = df[col].apply(convert_timezone_to_kolkata)
 			df[col] = df[col].apply(lambda x: x.replace(tzinfo=None) if x is not None else None)
 
-def thri_download_call_detail_report(filters, user, col_list, serializer_class, download_report_id=None):
+def download_call_detail_report(filters, user, col_list, serializer_class, download_report_id=None):
 	"""
 	this is the function for download call details reports
 	"""	
@@ -1843,7 +1843,7 @@ def thri_download_call_detail_report(filters, user, col_list, serializer_class, 
 	finally:
 		transaction.commit()
 		connections["default"].close()
-def download_call_detail_report(filters, user, col_list, serializer_class, download_report_id=None):
+def revert_download_call_detail_report(filters, user, col_list, serializer_class, download_report_id=None):
 	"""
 	this is the function for download call details reports
 	"""	
@@ -1868,7 +1868,7 @@ def download_call_detail_report(filters, user, col_list, serializer_class, downl
 		print(all_users, 'all_users 1')
 		if '' in all_users:
 			all_users.remove('')
-			all_users.append(0)
+			all_users.append('0')
    
 		print(all_users, 'all_users 2')
 		selected_campaign = filters.get("selected_campaign", "")
@@ -1972,18 +1972,23 @@ def download_call_detail_report(filters, user, col_list, serializer_class, downl
 		new_dialer_where = copy.copy(where)
 		new_dialer_where_ = new_dialer_where.replace('callcenter_calldetail',"callcenter_diallereventlog")
 		diallereventlog = "SELECT wait_time as dialer_query_wait_time,init_time as dialer_query_init_time,ring_time as dialer_query_ring_time,connect_time as dialer_query_connect_time,hangup_time as dialer_query_hangup_time,ring_duration as dialer_query_ring_duration,hold_time as dialer_query_hold_time,bill_sec as dialer_query_talk_time,call_duration as dialer_query_call_duration,session_uuid as dialer_query_session FROM callcenter_diallereventlog" + new_dialer_where_ + " ORDER BY callcenter_diallereventlog.created DESC "
-		reader_dialer=pd.read_sql(diallereventlog,db_connection,chunksize=1000)
+		reader_dialer=pd.read_sql(diallereventlog,db_connection,chunksize=50000)
 
-		reader=pd.read_sql(calldetail,db_connection,chunksize=1000)
+		reader=pd.read_sql(calldetail,db_connection,chunksize=50000)
 		download_folder = settings.MEDIA_ROOT+"/download/"+datetime.now().strftime("%m.%d.%Y")+"/"+str(user.id)+"/"
 		if not os.path.exists(download_folder):
 			os.makedirs(download_folder)
 		if download_report_id:
 			set_download_progress_redis(download_report_id, 25, is_refresh=True)
 		df0 = pd.concat(reader)
-		reader1=pd.read_sql(callcenter_calldetail,db_connection,chunksize=1000)
+		print(datetime.now(),"11111")
+		reader1=pd.read_sql(callcenter_calldetail,db_connection,chunksize=50000)
 		df1 = pd.concat(reader1)
+		print(datetime.now(),"22222")
 		df_dialer_query = pd.concat(reader_dialer)
+     #           print(datetime.now(),"3333")
+    #            print(datetime.now(),"")
+
 		df3=pd.read_sql(user_table,db_connection)
 		df9=pd.read_sql(user_table1,db_connection)
 		df4=pd.read_sql(smslog,db_connection)
@@ -2001,6 +2006,9 @@ def download_call_detail_report(filters, user, col_list, serializer_class, downl
 			'id':'id_contact',
 			'created_date':'created_date_contact'
 		})
+		if download_report_id !=None:
+			set_download_progress_redis(download_report_id, 50.0, is_refresh=True)
+
 		df_cdr=df_cdr.merge(df_crm1,how='left',right_on='id_contact',left_on='contact_id_calldetail')
 		df_cdr['hangup_cause_calldetail'] = np.where(((df_cdr['hangup_cause_dialer'].isnull())), df_cdr['hangup_cause_calldetail'], df_cdr['hangup_cause_dialer'])
 		df_cdr['hangup_cause_code_calldetail'] = np.where(((df_cdr['hangup_cause_code_dialer'].isnull())), df_cdr['hangup_cause_code_calldetail'], df_cdr['hangup_cause_code_dialer'])
