@@ -1,0 +1,156 @@
+5411692:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [NOTICE] switch_channel.c:1118 New Channel sofia/external/08884873965@10.4.210.43 [38ae304b-0e90-4105-9017-3177328bd7d1]
+5411693:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] mod_sofia.c:5089 (sofia/external/08884873965@10.4.210.43) State Change CS_NEW -> CS_INIT
+5411694:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_session.c:641 sofia/external/08884873965@10.4.210.43 set UUID=38ae304b-0e90-4105-9017-3177328bd7d1
+5411695:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_INIT (Cur 61 Tot 12947)
+5411696:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:628 (sofia/external/08884873965@10.4.210.43) State INIT
+5411697:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] mod_sofia.c:93 sofia/external/08884873965@10.4.210.43 SOFIA INIT
+5411698:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] sofia_glue.c:1618 sofia/external/08884873965@10.4.210.43 sending invite version: 1.10.5 -release 64bit
+5411699:38ae304b-0e90-4105-9017-3177328bd7d1 Local SDP:
+5411700:38ae304b-0e90-4105-9017-3177328bd7d1 v=0
+5411701:38ae304b-0e90-4105-9017-3177328bd7d1 o=FreeSWITCH 1749147239 1749147240 IN IP4 192.168.93.91
+5411702:38ae304b-0e90-4105-9017-3177328bd7d1 s=FreeSWITCH
+5411703:38ae304b-0e90-4105-9017-3177328bd7d1 c=IN IP4 192.168.93.91
+5411704:38ae304b-0e90-4105-9017-3177328bd7d1 t=0 0
+5411705:38ae304b-0e90-4105-9017-3177328bd7d1 m=audio 32686 RTP/AVP 8 0 101
+5411706:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:8 PCMA/8000
+5411707:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:0 PCMU/8000
+5411708:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:101 telephone-event/8000
+5411709:38ae304b-0e90-4105-9017-3177328bd7d1 a=fmtp:101 0-16
+5411710:38ae304b-0e90-4105-9017-3177328bd7d1 a=ptime:20
+5411711:38ae304b-0e90-4105-9017-3177328bd7d1 a=sendrecv
+5411712:38ae304b-0e90-4105-9017-3177328bd7d1 
+5411713:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:40 sofia/external/08884873965@10.4.210.43 Standard INIT
+5411714:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:48 (sofia/external/08884873965@10.4.210.43) State Change CS_INIT -> CS_ROUTING
+5411715:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:628 (sofia/external/08884873965@10.4.210.43) State INIT going to sleep
+5411716:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_ROUTING (Cur 61 Tot 12947)
+5411717:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:644 (sofia/external/08884873965@10.4.210.43) State ROUTING
+5411718:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] mod_sofia.c:154 sofia/external/08884873965@10.4.210.43 SOFIA ROUTING
+5411719:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_ivr_originate.c:67 (sofia/external/08884873965@10.4.210.43) State Change CS_ROUTING -> CS_CONSUME_MEDIA
+5411720:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:644 (sofia/external/08884873965@10.4.210.43) State ROUTING going to sleep
+5411721:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_CONSUME_MEDIA (Cur 61 Tot 12947)
+5411722:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:663 (sofia/external/08884873965@10.4.210.43) State CONSUME_MEDIA
+5411723:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] switch_core_state_machine.c:663 (sofia/external/08884873965@10.4.210.43) State CONSUME_MEDIA going to sleep
+5411724:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.698241 [DEBUG] sofia.c:7326 Channel sofia/external/08884873965@10.4.210.43 entering state [calling][0]
+5411725:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] sofia.c:7326 Channel sofia/external/08884873965@10.4.210.43 entering state [proceeding][183]
+5411726:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] sofia.c:7336 Remote SDP:
+5411727:38ae304b-0e90-4105-9017-3177328bd7d1 v=0
+5411728:38ae304b-0e90-4105-9017-3177328bd7d1 o=- 17959 17960 IN IP4 10.4.210.43
+5411729:38ae304b-0e90-4105-9017-3177328bd7d1 s=Gateway
+5411730:38ae304b-0e90-4105-9017-3177328bd7d1 c=IN IP4 10.4.210.43
+5411731:38ae304b-0e90-4105-9017-3177328bd7d1 t=0 0
+5411732:38ae304b-0e90-4105-9017-3177328bd7d1 m=audio 16420 RTP/AVP 8 0 101
+5411733:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:8 PCMA/8000
+5411734:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:0 PCMU/8000
+5411735:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:101 telephone-event/8000
+5411736:38ae304b-0e90-4105-9017-3177328bd7d1 a=fmtp:101 0-15
+5411737:38ae304b-0e90-4105-9017-3177328bd7d1 
+5411738:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [NOTICE] sofia.c:7339 Pre-Answer sofia/external/08884873965@10.4.210.43!
+5411739:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_channel.c:3565 (sofia/external/08884873965@10.4.210.43) Callstate Change DOWN -> EARLY
+5411740:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5594 Audio Codec Compare [PCMA:8:8000:20:64000:1]/[PCMA:8:8000:20:64000:1]
+5411741:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5649 Audio Codec Compare [PCMA:8:8000:20:64000:1] ++++ is saved as a match
+5411742:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5594 Audio Codec Compare [PCMA:8:8000:20:64000:1]/[PCMU:0:8000:20:64000:1]
+5411743:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5594 Audio Codec Compare [PCMU:0:8000:20:64000:1]/[PCMA:8:8000:20:64000:1]
+5411744:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5594 Audio Codec Compare [PCMU:0:8000:20:64000:1]/[PCMU:0:8000:20:64000:1]
+5411745:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5649 Audio Codec Compare [PCMU:0:8000:20:64000:1] ++++ is saved as a match
+5411746:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5510 Set telephone-event payload to 101@8000
+5411747:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:3839 Set Codec sofia/external/08884873965@10.4.210.43 PCMA/8000 20 ms 160 samples 64000 bits 1 channels
+5411748:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_codec.c:111 sofia/external/08884873965@10.4.210.43 Original read codec set to PCMA:8
+5411749:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5853 Set telephone-event payload to 101@8000
+5411750:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:5911 sofia/external/08884873965@10.4.210.43 Set 2833 dtmf send payload to 101 recv payload to 101
+5411751:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:8663 AUDIO RTP [sofia/external/08884873965@10.4.210.43] 192.168.93.91 port 32686 -> 10.4.210.43 port 16420 codec: 8 ms: 20
+5411752:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_rtp.c:4450 Starting timer [soft] 160 bytes per 20ms
+5411753:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:2554 Setting Jitterbuffer to 60ms (3 frames) (150 max frames)
+5411754:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:8977 sofia/external/08884873965@10.4.210.43 Set 2833 dtmf send payload to 101
+5411755:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:8984 sofia/external/08884873965@10.4.210.43 Set 2833 dtmf receive payload to 101
+5411756:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:45.758230 [DEBUG] switch_core_media.c:9007 sofia/external/08884873965@10.4.210.43 Set rtp dtmf delay to 40
+5412885:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:56.478223 [DEBUG] sofia.c:7326 Channel sofia/external/08884873965@10.4.210.43 entering state [proceeding][180]
+5412886:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:56.478223 [NOTICE] sofia.c:7437 Ring-Ready sofia/external/08884873965@10.4.210.43!
+5412887:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:48:56.478223 [DEBUG] switch_channel.c:3437 (sofia/external/08884873965@10.4.210.43) Callstate Change EARLY -> RINGING
+5413280:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.718233 [DEBUG] sofia.c:7326 Channel sofia/external/08884873965@10.4.210.43 entering state [completing][200]
+5413281:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.718233 [DEBUG] sofia.c:7336 Remote SDP:
+5413282:38ae304b-0e90-4105-9017-3177328bd7d1 v=0
+5413283:38ae304b-0e90-4105-9017-3177328bd7d1 o=- 17965 17966 IN IP4 10.4.210.43
+5413284:38ae304b-0e90-4105-9017-3177328bd7d1 s=Gateway
+5413285:38ae304b-0e90-4105-9017-3177328bd7d1 c=IN IP4 10.4.210.43
+5413286:38ae304b-0e90-4105-9017-3177328bd7d1 t=0 0
+5413287:38ae304b-0e90-4105-9017-3177328bd7d1 m=audio 16420 RTP/AVP 8 0 101
+5413288:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:8 PCMA/8000
+5413289:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:0 PCMU/8000
+5413290:38ae304b-0e90-4105-9017-3177328bd7d1 a=rtpmap:101 telephone-event/8000
+5413291:38ae304b-0e90-4105-9017-3177328bd7d1 a=fmtp:101 0-15
+5413292:38ae304b-0e90-4105-9017-3177328bd7d1 
+5413293:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.718233 [DEBUG] sofia.c:7326 Channel sofia/external/08884873965@10.4.210.43 entering state [ready][200]
+5413294:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.718233 [NOTICE] sofia.c:8445 Channel [sofia/external/08884873965@10.4.210.43] has been answered
+5413295:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.718233 [DEBUG] switch_channel.c:3865 (sofia/external/08884873965@10.4.210.43) Callstate Change RINGING -> ACTIVE
+5413297:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_ivr.c:2243 (sofia/external/08884873965@10.4.210.43) State Change CS_CONSUME_MEDIA -> CS_ROUTING
+5413298:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [NOTICE] switch_ivr.c:2250 Transfer sofia/external/08884873965@10.4.210.43 to XML[119@default]
+5413299:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_ROUTING (Cur 61 Tot 12954)
+5413300:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:644 (sofia/external/08884873965@10.4.210.43) State ROUTING
+5413301:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] mod_sofia.c:154 sofia/external/08884873965@10.4.210.43 SOFIA ROUTING
+5413302:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:236 sofia/external/08884873965@10.4.210.43 Standard ROUTING
+5413303:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [INFO] mod_dialplan_xml.c:637 Processing  <[[[[[[[[[[[0]]]]]]]]]]]>->119 in context default
+5413304:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->inbound_calls] continue=false
+5413305:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (FAIL) [inbound_calls] destination_number(119) =~ /4869900/ break=on-false
+5413306:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->wfh_agent_req_dial] continue=false
+5413307:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (FAIL) [wfh_agent_req_dial] destination_number(119) =~ /^(12345)$/ break=on-false
+5413308:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->sip_number] continue=false
+5413309:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (FAIL) [sip_number] destination_number(119) =~ /^(11119916)$/ break=on-false
+5413310:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->sip_session_answer] continue=false
+5413311:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (FAIL) [sip_session_answer] destination_number(119) =~ /^(00019916)$/ break=on-false
+5413312:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->outbound_session_loop] continue=false
+5413313:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (FAIL) [outbound_session_loop] destination_number(119) =~ /^(000312951420)$/ break=on-false
+5413314:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 parsing [default->agent-work-flow] continue=false
+5413315:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (PASS) [agent-work-flow] destination_number(119) =~ /^[0-9][0-9][0-9]$/ break=on-false
+5413316:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Regex (PASS) [agent-work-flow] ${voice_blaster}(False) =~ /^(False)$/ break=on-false
+5413317:38ae304b-0e90-4105-9017-3177328bd7d1 Dialplan: sofia/external/08884873965@10.4.210.43 Action socket(127.0.0.1:8086 async full)
+5413318:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [INFO] switch_channel.c:3213 sofia/external/08884873965@10.4.210.43 Flipping CID from "" <[[[[[[[[[[[0]]]]]]]]]]]> to "Outbound Call" <08884873965>
+5413319:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:287 (sofia/external/08884873965@10.4.210.43) State Change CS_ROUTING -> CS_EXECUTE
+5413320:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:644 (sofia/external/08884873965@10.4.210.43) State ROUTING going to sleep
+5413321:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_EXECUTE (Cur 61 Tot 12954)
+5413322:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:651 (sofia/external/08884873965@10.4.210.43) State EXECUTE
+5413323:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] mod_sofia.c:209 sofia/external/08884873965@10.4.210.43 SOFIA EXECUTE
+5413324:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_core_state_machine.c:329 sofia/external/08884873965@10.4.210.43 Standard EXECUTE
+5413325:38ae304b-0e90-4105-9017-3177328bd7d1 EXECUTE [depth=0] sofia/external/08884873965@10.4.210.43 socket(127.0.0.1:8086 async full)
+5413326:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [NOTICE] mod_event_socket.c:452 Trying host: 127.0.0.1:8086
+5413327:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.738232 [DEBUG] switch_rtp.c:7759 Correct audio ip/port confirmed.
+5413328:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] switch_ivr.c:632 sofia/external/08884873965@10.4.210.43 Command Execute [depth=1] set(hangup_after_bridge=false)
+5413329:38ae304b-0e90-4105-9017-3177328bd7d1 EXECUTE [depth=1] sofia/external/08884873965@10.4.210.43 set(hangup_after_bridge=false)
+5413330:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] mod_dptools.c:1672 SET sofia/external/08884873965@10.4.210.43 [hangup_after_bridge]=[false]
+5413331:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] switch_ivr.c:632 sofia/external/08884873965@10.4.210.43 Command Execute [depth=1] set(cc_customer=${caller_id_number})
+5413332:38ae304b-0e90-4105-9017-3177328bd7d1 EXECUTE [depth=1] sofia/external/08884873965@10.4.210.43 set(cc_customer=08884873965)
+5413333:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] mod_dptools.c:1672 SET sofia/external/08884873965@10.4.210.43 [cc_customer]=[08884873965]
+5413334:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] switch_ivr.c:632 sofia/external/08884873965@10.4.210.43 Command Execute [depth=1] set(cc_export_vars=cc_customer,cc_uname,campaign,disposition,contact_id,phonebook)
+5413335:38ae304b-0e90-4105-9017-3177328bd7d1 EXECUTE [depth=1] sofia/external/08884873965@10.4.210.43 set(cc_export_vars=cc_customer,cc_uname,campaign,disposition,contact_id,phonebook)
+5413336:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] mod_dptools.c:1672 SET sofia/external/08884873965@10.4.210.43 [cc_export_vars]=[cc_customer,cc_uname,campaign,disposition,contact_id,phonebook]
+5413337:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] switch_ivr.c:632 sofia/external/08884873965@10.4.210.43 Command Execute [depth=1] callcenter(Kannada_PR)
+5413338:38ae304b-0e90-4105-9017-3177328bd7d1 EXECUTE [depth=1] sofia/external/08884873965@10.4.210.43 callcenter(Kannada_PR)
+5413339:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] mod_callcenter.c:3111 Member Outbound Call <08884873965> joining queue Kannada_PR
+5413342:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:05.878231 [DEBUG] switch_ivr_play_say.c:1488 Codec Activated L16@8000hz 1 channels 20ms
+5413347:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [NOTICE] sofia.c:1089 Hangup sofia/external/08884873965@10.4.210.43 [CS_EXECUTE] [NORMAL_CLEARING]
+5413348:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_ivr_play_say.c:1933 done playing file local_stream://moh
+5413349:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] mod_callcenter.c:3241 Member Outbound Call <08884873965> abandoned waiting in queue Kannada_PR
+5413350:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] mod_callcenter.c:3274 Member "Outbound Call" <08884873965> exit queue Kannada_PR due to BREAK_OUT
+5413352:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_session.c:2905 sofia/external/08884873965@10.4.210.43 skip receive message [APPLICATION_EXEC_COMPLETE] (channel is hungup already)
+5413353:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_ivr.c:679 sofia/external/08884873965@10.4.210.43 skip receive message [AUDIO_SYNC] (channel is hungup already)
+5413354:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_session.c:2905 sofia/external/08884873965@10.4.210.43 skip receive message [APPLICATION_EXEC_COMPLETE] (channel is hungup already)
+5413355:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:651 (sofia/external/08884873965@10.4.210.43) State EXECUTE going to sleep
+5413356:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_HANGUP (Cur 61 Tot 12954)
+5413357:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:848 (sofia/external/08884873965@10.4.210.43) Callstate Change ACTIVE -> HANGUP
+5413358:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:850 (sofia/external/08884873965@10.4.210.43) State HANGUP
+5413359:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] mod_sofia.c:453 Channel sofia/external/08884873965@10.4.210.43 hanging up, cause: NORMAL_CLEARING
+5413360:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:60 sofia/external/08884873965@10.4.210.43 Standard HANGUP, cause: NORMAL_CLEARING
+5413361:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:850 (sofia/external/08884873965@10.4.210.43) State HANGUP going to sleep
+5413362:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:620 (sofia/external/08884873965@10.4.210.43) State Change CS_HANGUP -> CS_REPORTING
+5413363:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:585 (sofia/external/08884873965@10.4.210.43) Running State Change CS_REPORTING (Cur 61 Tot 12954)
+5413364:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.858233 [DEBUG] switch_core_state_machine.c:936 (sofia/external/08884873965@10.4.210.43) State REPORTING
+5413365:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:174 sofia/external/08884873965@10.4.210.43 Standard REPORTING, cause: NORMAL_CLEARING
+5413366:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:936 (sofia/external/08884873965@10.4.210.43) State REPORTING going to sleep
+5413367:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:611 (sofia/external/08884873965@10.4.210.43) State Change CS_REPORTING -> CS_DESTROY
+5413368:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_session.c:1726 Session 12947 (sofia/external/08884873965@10.4.210.43) Locked, Waiting on external entities
+5413369:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [NOTICE] switch_core_session.c:1744 Session 12947 (sofia/external/08884873965@10.4.210.43) Ended
+5413370:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [NOTICE] switch_core_session.c:1748 Close Channel sofia/external/08884873965@10.4.210.43 [CS_DESTROY]
+5413371:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:739 (sofia/external/08884873965@10.4.210.43) Running State Change CS_DESTROY (Cur 60 Tot 12954)
+5413372:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:749 (sofia/external/08884873965@10.4.210.43) State DESTROY
+5413373:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] mod_sofia.c:364 sofia/external/08884873965@10.4.210.43 SOFIA DESTROY
+5413374:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:181 sofia/external/08884873965@10.4.210.43 Standard DESTROY
+5413375:38ae304b-0e90-4105-9017-3177328bd7d1 2025-06-06 08:49:06.878228 [DEBUG] switch_core_state_machine.c:749 (sofia/external/08884873965@10.4.210.43) State DESTROY going to sleep
