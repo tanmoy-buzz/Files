@@ -1,0 +1,58 @@
+LOAN:-
+======
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('7ws2iss0dc', 'IVRS', 'loan');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('yuhya1ldpk', 'OTPR', 'loan');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('kizws3545b', 'WSET', 'loan');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('hqyzg2twms', 'Redial', 'loan');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('6wox75k4a', 'INTP', 'loan');
+
+
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('lefucqlu', 'Over leveraged Multiple debts', 'loan');
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('6u6vt51xaa', 'No whereabouts of the customer', 'loan');
+
+
+HFC LOANS:-
+======
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('56jh3xxo5', 'IVRS', 'hfc_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('q2q7uvz7s6', 'OTPR', 'hfc_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('54t8hnqdd', 'WSET', 'hfc_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('5dlysa4kcn', 'Redial', 'hfc_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('9px56wufa', 'INTP', 'hfc_loans');
+
+
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('xvvtwxfy', 'Over leveraged Multiple debts', 'hfc_loans');
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('6u6vt51xaa', 'No whereabouts of the customer', 'hfc_loans');
+
+
+URBAN LOANS:-
+======
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('2p8loru14d', 'IVRS', 'urban_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('h0azy6232o', 'OTPR', 'urban_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('c9uve5ld9d', 'WSET', 'urban_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('avzbhehlz', 'Redial', 'urban_loans');
+
+INSERT INTO vymo_dispo_disposition (code, value, loan_type) VALUES ('6wox75k4a', 'INTP', 'urban_loans');
+
+
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('dakzilro', 'Over leveraged Multiple debts', 'urban_loans');
+
+INSERT INTO vymo_dispo_rfd (code, value, loan_type) VALUES ('6u6vt51xaa', 'No whereabouts of the customer', 'urban_loans');
